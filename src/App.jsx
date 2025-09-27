@@ -101,7 +101,7 @@ function App() {
       <header className="app-header">
         <div className="header-left">
           <img
-            src="./src/assets/pie-chart.png"
+            src="./assets/pie-chart.png"
             alt="Logo"
             className="app-logo"
           />
