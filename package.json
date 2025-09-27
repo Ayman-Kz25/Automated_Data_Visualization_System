@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://ayman-kz25.github.io/Automated_Data_Visualization_System"
+  "homepage": "https://ayman-kz25.github.io/Automated_Data_Visualization_System",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
