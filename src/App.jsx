@@ -9,6 +9,7 @@ import TreeChart from "./components/TreeChart";
 import DatasetSummary from './components/DatasetSummary';
 import "./App.css";
 import { summary } from "framer-motion/client";
+import logo from './assets/pie-chart.png';
 
 function App() {
   const [theme, setTheme] = useState("light");
@@ -101,7 +102,7 @@ function App() {
       <header className="app-header">
         <div className="header-left">
           <img
-            src="./assets/pie-chart.png"
+            src={logo}
             alt="Logo"
             className="app-logo"
           />
