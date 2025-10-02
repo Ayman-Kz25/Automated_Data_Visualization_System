@@ -40,7 +40,7 @@ function ReportExporter({ chartRef, insightsRef, summaryRef, xCol, yCol }) {
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(14);
     pdf.setTextColor(90, 90, 90);
-    pdf.text("Prepared By: Ayman Kz (23SW011)", pageWidth / 2, 160, {
+    pdf.text("Prepared By: Ayman Kz", pageWidth / 2, 160, {
       align: "center",
     });
     pdf.text(`Date: ${new Date().toLocaleDateString()}`, pageWidth / 2, 175, {
