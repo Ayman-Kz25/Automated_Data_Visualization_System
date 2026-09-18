@@ -1,14 +1,14 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
+
 import FileUploader from "./components/FileUploader.jsx";
 import DatasetSelector from "./components/DatasetSelector.jsx";
 import ColumnSelector from "./components/ColumnSelector.jsx";
 import ChartRenderer from "./components/ChartRenderer.jsx";
 import InsightsPanel from "./components/InsightsPanel.jsx";
 import ReportExporter from "./components/ReportExporter.jsx";
-import TreeChart from "./components/TreeChart";
-import DatasetSummary from './components/DatasetSummary.jsx';
-// import { summary } from "framer-motion/client";
-import logo from './assets/pie-chart.png';
+import DatasetSummary from "./components/DatasetSummary.jsx";
+
+import logo from "./assets/pie-chart.png";
 
 function App() {
   const [theme, setTheme] = useState("light");
@@ -23,67 +23,6 @@ function App() {
   const insightsRef = useRef(null);
   const summaryRef = useRef(null);
 
-  const handleDatasetSelect = (index) => {
-    setActiveDataset(Number(index));
-  };
-
-  const selectedData = useMemo(
-    () =>
-      activeDataset !== null && datasets[activeDataset]
-        ? datasets[activeDataset].data || []
-        : [],
-    [activeDataset, datasets]
-  );
-
-  const columns = useMemo(
-    () => (selectedData.length ? Object.keys(selectedData[0]) : []),
-    [selectedData]
-  );
-
-  // Set default xCol/yCol when dataset changes
-  useEffect(() => {
-    if (columns.length > 0) {
-      if (!xCol) setXCol(columns[0]);
-      if (!yCol) setYCol(columns[1] || columns[0]);
-    } else {
-      setXCol("");
-      setYCol("");
-    }
-  }, [columns]);
-
-  // Automatically select first dataset if none selected
-  useEffect(() => {
-    if (datasets.length > 0 && activeDataset === null) {
-      setActiveDataset(0);
-    }
-  }, [datasets, activeDataset]);
-
-  // Custom chart render function for "customized" chart type
-  const customChartFunction = (data) => {
-    return (
-      <svg width="100%" height="300">
-        {data.map((entry, idx) => (
-          <circle
-            key={idx}
-            cx={50 + idx * 60}
-            cy={300 - entry[yCol] / 5}
-            r={20}
-            fill="#FEC89A"
-          />
-        ))}
-      </svg>
-    );
-  };
-
-  // Apply theme to body (so the whole app updates)
-  useEffect(() => {
-    document.body.className = theme;
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === "light" ? "dark" : "light"));
-  };
-
   const allChartTypes = [
     "line",
     "bar",
@@ -96,21 +35,180 @@ function App() {
     "tree",
   ];
 
-  return (
-    <div className="app-container">
-      <header className="app-header">
-        <div className="header-left">
-          <img
-            src={logo}
-            alt="Logo"
-            className="app-logo"
+  /* -------------------------------------------------------
+     Dataset selection
+  ------------------------------------------------------- */
+
+  const handleDatasetSelect = (index) => {
+    setActiveDataset(Number(index));
+  };
+
+  /* -------------------------------------------------------
+     Selected dataset
+  ------------------------------------------------------- */
+
+  const selectedData = useMemo(
+    () =>
+      activeDataset !== null && datasets[activeDataset]
+        ? datasets[activeDataset].data || []
+        : [],
+    [activeDataset, datasets]
+  );
+
+  /* -------------------------------------------------------
+     Dataset columns
+  ------------------------------------------------------- */
+
+  const columns = useMemo(
+    () => (selectedData.length ? Object.keys(selectedData[0]) : []),
+    [selectedData]
+  );
+
+  /* -------------------------------------------------------
+     Automatically select columns
+  ------------------------------------------------------- */
+
+  useEffect(() => {
+    if (columns.length > 0) {
+      setXCol((current) =>
+        current && columns.includes(current) ? current : columns[0]
+      );
+
+      setYCol((current) =>
+        current && columns.includes(current)
+          ? current
+          : columns[1] || columns[0]
+      );
+    } else {
+      setXCol("");
+      setYCol("");
+    }
+  }, [columns]);
+
+  /* -------------------------------------------------------
+     Automatically select first dataset
+  ------------------------------------------------------- */
+
+  useEffect(() => {
+    if (datasets.length > 0 && activeDataset === null) {
+      setActiveDataset(0);
+    }
+  }, [datasets, activeDataset]);
+
+  /* -------------------------------------------------------
+     Theme
+  ------------------------------------------------------- */
+
+  useEffect(() => {
+    document.body.className = theme;
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((previous) =>
+      previous === "light" ? "dark" : "light"
+    );
+  };
+
+  /* -------------------------------------------------------
+     Chart selection
+  ------------------------------------------------------- */
+
+  const toggleChartType = (chart) => {
+    setChartType((previous) =>
+      previous.includes(chart)
+        ? previous.filter((item) => item !== chart)
+        : [...previous, chart]
+    );
+  };
+
+  const toggleAllCharts = () => {
+    setChartType((previous) =>
+      previous.length === allChartTypes.length ? [] : allChartTypes
+    );
+  };
+
+  /* -------------------------------------------------------
+     Custom chart
+  ------------------------------------------------------- */
+
+  const customChartFunction = (data) => {
+    return (
+      <svg width="100%" height="300">
+        {data.map((entry, index) => (
+          <circle
+            key={index}
+            cx={50 + index * 60}
+            cy={300 - entry[yCol] / 5}
+            r={20}
+            fill="#FEC89A"
           />
+        ))}
+      </svg>
+    );
+  };
+
+  const hasData = selectedData.length > 0;
+  const activeDatasetName =
+    activeDataset !== null && datasets[activeDataset]
+      ? datasets[activeDataset].name || `Dataset ${activeDataset + 1}`
+      : "No dataset selected";
+
+  return (
+    <div className={`app-container ${theme}`}>
+      {/* =====================================================
+          TOP NAVIGATION
+      ===================================================== */}
+
+      <header className="topbar">
+        <div className="brand-area">
+          <div className="brand-logo">
+            <img src={logo} alt="DataViz logo" />
+          </div>
+
+          <div className="brand-copy">
+            <span className="brand-name">DataViz</span>
+            <span className="brand-subtitle">
+              Automated Data Visualization
+            </span>
+          </div>
         </div>
 
-        <h1 className="header-title">Automated Data Visualization System</h1>
+        <div className="topbar-center">
+          {hasData && (
+            <div className="dataset-status">
+              <span className="status-dot"></span>
 
-        <div className="header-right">
-          <button className="theme-toggle" onClick={toggleTheme}>
+              <span>
+                Working with <strong>{activeDatasetName}</strong>
+              </span>
+            </div>
+          )}
+        </div>
+
+        <div className="topbar-actions">
+          {hasData && (
+            <div className="data-indicator">
+              <i className="fa-solid fa-table"></i>
+
+              <span>
+                {selectedData.length} rows
+              </span>
+
+              <span className="indicator-divider">•</span>
+
+              <span>
+                {columns.length} columns
+              </span>
+            </div>
+          )}
+
+          <button
+            type="button"
+            className="theme-toggle"
+            onClick={toggleTheme}
+            aria-label="Toggle theme"
+            title="Toggle theme"
+          >
             {theme === "light" ? (
               <i className="fa-solid fa-moon"></i>
             ) : (
@@ -120,117 +218,539 @@ function App() {
         </div>
       </header>
 
-      {/* Wrapper for sidebar and main to enable side-by-side layout below header */}
-      <div className="dashboard-layout">
-        <aside className="sidebar">
-          <h2>
-            <i class="fa-solid fa-gear"></i> Controls
-          </h2>
+      {/* =====================================================
+          MAIN DASHBOARD
+      ===================================================== */}
 
-          <div className="control-group uploader">
-            <FileUploader setDatasets={setDatasets} />
+      <div className="dashboard-shell">
+
+        {/* ===================================================
+            SIDEBAR / CONTROL PANEL
+        =================================================== */}
+
+        <aside className="control-panel">
+
+          <div className="panel-heading">
+            <div className="panel-heading-icon">
+              <i className="fa-solid fa-sliders"></i>
+            </div>
+
+            <div>
+              <h2>Workspace</h2>
+              <p>Configure your visualization</p>
+            </div>
           </div>
+
+          {/* Upload */}
+
+          <section className="control-section">
+            <div className="section-label">
+              <span className="section-number">01</span>
+              <span>Import Data</span>
+            </div>
+
+            <div className="control-card uploader-card">
+              <FileUploader setDatasets={setDatasets} />
+            </div>
+          </section>
 
           {datasets.length > 0 && (
             <>
-              <div className="control-group dataset-selector">
-                <DatasetSelector
-                  datasets={datasets}
-                  activeDataset={activeDataset}
-                  setActiveDataset={handleDatasetSelect}
-                />
-              </div>
+              {/* Dataset */}
 
-              {activeDataset !== null && columns.length > 0 && (
-                <div className="control-group column-selector">
-                  <ColumnSelector
-                    columns={columns}
-                    xCol={xCol}
-                    yCol={yCol}
-                    setXCol={setXCol}
-                    setYCol={setYCol}
+              <section className="control-section">
+                <div className="section-label">
+                  <span className="section-number">02</span>
+                  <span>Dataset</span>
+                </div>
+
+                <div className="control-card">
+                  <DatasetSelector
+                    datasets={datasets}
+                    activeDataset={activeDataset}
+                    setActiveDataset={handleDatasetSelect}
                   />
                 </div>
-              )}
+              </section>
 
-              <div className="control-group chart-type-selector">
-                <div className="chart-selector">
-                  <label>Chart Type(s)</label>
+              {/* Columns */}
 
-                  <div>
-                    <input
-                      type="checkbox"
-                      id="selectAll"
-                      checked={chartType.length === allChartTypes.length}
-                      onChange={(e) => {
-                        setChartType(e.target.checked ? allChartTypes : []);
-                      }}
-                    />
-                    <label htmlFor="selectAll">
-                      <strong>Select All</strong>
-                    </label>
+              {activeDataset !== null && columns.length > 0 && (
+                <section className="control-section">
+                  <div className="section-label">
+                    <span className="section-number">03</span>
+                    <span>Data Mapping</span>
                   </div>
 
-                  {allChartTypes.map((chart) => (
-                    <div key={chart}>
-                      <input
-                        type="checkbox"
-                        id={chart}
-                        value={chart}
-                        checked={chartType.includes(chart)}
-                        onChange={(e) =>
-                          setChartType((prev) =>
-                            e.target.checked
-                              ? [...prev, chart]
-                              : prev.filter((c) => c !== chart)
-                          )
-                        }
-                      />
-                      <label htmlFor={chart}>
-                        {chart.charAt(0).toUpperCase() + chart.slice(1)}
-                      </label>
-                    </div>
-                  ))}
+                  <div className="control-card">
+                    <ColumnSelector
+                      columns={columns}
+                      xCol={xCol}
+                      yCol={yCol}
+                      setXCol={setXCol}
+                      setYCol={setYCol}
+                    />
+                  </div>
+                </section>
+              )}
+
+              {/* Chart Types */}
+
+              <section className="control-section">
+                <div className="section-label">
+                  <span className="section-number">04</span>
+                  <span>Visualizations</span>
                 </div>
-              </div>
+
+                <div className="control-card chart-options-card">
+
+                  <div className="chart-options-header">
+                    <div>
+                      <strong>Chart Types</strong>
+                      <span>
+                        {chartType.length === 0
+                          ? "Automatic"
+                          : `${chartType.length} selected`}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="select-all-button"
+                      onClick={toggleAllCharts}
+                    >
+                      {chartType.length === allChartTypes.length
+                        ? "Clear"
+                        : "All"}
+                    </button>
+                  </div>
+
+                  <div className="chart-options-grid">
+                    {allChartTypes.map((chart) => {
+                      const selected = chartType.includes(chart);
+
+                      return (
+                        <label
+                          key={chart}
+                          className={`chart-option ${
+                            selected ? "selected" : ""
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selected}
+                            onChange={() =>
+                              toggleChartType(chart)
+                            }
+                          />
+
+                          <span className="chart-option-icon">
+                            {chart === "line" && (
+                              <i className="fa-solid fa-chart-line"></i>
+                            )}
+
+                            {chart === "bar" && (
+                              <i className="fa-solid fa-chart-column"></i>
+                            )}
+
+                            {chart === "scatter" && (
+                              <i className="fa-solid fa-braille"></i>
+                            )}
+
+                            {chart === "area" && (
+                              <i className="fa-solid fa-chart-area"></i>
+                            )}
+
+                            {chart === "pie" && (
+                              <i className="fa-solid fa-chart-pie"></i>
+                            )}
+
+                            {chart === "radar" && (
+                              <i className="fa-solid fa-spider"></i>
+                            )}
+
+                            {chart === "treemap" && (
+                              <i className="fa-solid fa-table-cells-large"></i>
+                            )}
+
+                            {chart === "funnel" && (
+                              <i className="fa-solid fa-filter"></i>
+                            )}
+
+                            {chart === "tree" && (
+                              <i className="fa-solid fa-sitemap"></i>
+                            )}
+                          </span>
+
+                          <span className="chart-option-name">
+                            {chart.charAt(0).toUpperCase() +
+                              chart.slice(1)}
+                          </span>
+
+                          <span className="chart-check">
+                            {selected && (
+                              <i className="fa-solid fa-check"></i>
+                            )}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              </section>
+
+              {/* Tree Layout */}
 
               {chartType.includes("tree") && (
-                <div className="control-group">
-                  <label>Tree Layout</label>
-                  <select
-                    value={treeLayout}
-                    onChange={(e) => setTreeLayout(e.target.value)}
-                  >
-                    <option value="vertical">Vertical</option>
-                    <option value="radial">Radial</option>
-                  </select>
-                </div>
+                <section className="control-section">
+                  <div className="section-label">
+                    <span className="section-number">05</span>
+                    <span>Tree Layout</span>
+                  </div>
+
+                  <div className="control-card layout-card">
+
+                    <label htmlFor="tree-layout">
+                      Layout orientation
+                    </label>
+
+                    <select
+                      id="tree-layout"
+                      value={treeLayout}
+                      onChange={(event) =>
+                        setTreeLayout(event.target.value)
+                      }
+                    >
+                      <option value="vertical">
+                        Vertical
+                      </option>
+
+                      <option value="radial">
+                        Radial
+                      </option>
+                    </select>
+
+                  </div>
+                </section>
               )}
             </>
           )}
+
+          {/* Sidebar footer */}
+
+          <div className="panel-footer">
+            <div className="system-status">
+              <span className="status-dot"></span>
+
+              <div>
+                <strong>Visualization engine ready</strong>
+                <span>System operational</span>
+              </div>
+            </div>
+          </div>
         </aside>
 
+        {/* ===================================================
+            DASHBOARD CONTENT
+        =================================================== */}
+
         <main className="dashboard-main">
-          {xCol && yCol && selectedData.length > 0 && (
-            <>
-              <div ref={chartRef} className="chart-wrapper">
-                <ChartRenderer
-                  data={selectedData}
-                  xCol={xCol}
-                  yCol={yCol}
-                  chartType={chartType}
-                  customChart={customChartFunction}
-                  treeLayout={treeLayout}
-                />
+
+          {!hasData ? (
+            /* =================================================
+               EMPTY STATE
+            ================================================= */
+
+            <div className="empty-dashboard">
+
+              <div className="empty-illustration">
+                <div className="empty-circle">
+                  <i className="fa-solid fa-chart-pie"></i>
+                </div>
+
+                <div className="empty-decoration empty-decoration-one">
+                  <i className="fa-solid fa-chart-line"></i>
+                </div>
+
+                <div className="empty-decoration empty-decoration-two">
+                  <i className="fa-solid fa-chart-column"></i>
+                </div>
               </div>
 
-              <div className="summary" ref={summaryRef}>
-              <DatasetSummary data={selectedData} />
+              <div className="empty-content">
+                <span className="eyebrow">
+                  DATA VISUALIZATION WORKSPACE
+                </span>
+
+                <h1>
+                  Turn raw data into
+                  <span> meaningful visuals.</span>
+                </h1>
+
+                <p>
+                  Upload a CSV or Excel dataset to begin exploring
+                  patterns, relationships, trends, and insights
+                  through interactive visualizations.
+                </p>
+
+                <div className="empty-features">
+                  <div>
+                    <i className="fa-solid fa-upload"></i>
+                    <span>Upload data</span>
+                  </div>
+
+                  <div>
+                    <i className="fa-solid fa-wand-magic-sparkles"></i>
+                    <span>Auto visualize</span>
+                  </div>
+
+                  <div>
+                    <i className="fa-solid fa-lightbulb"></i>
+                    <span>Discover insights</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* =================================================
+               DATASET DASHBOARD
+            ================================================= */
+
+            <div className="workspace">
+
+              {/* Dashboard heading */}
+
+              <div className="workspace-header">
+
+                <div>
+                  <div className="breadcrumb">
+                    <span>Workspace</span>
+                    <i className="fa-solid fa-chevron-right"></i>
+                    <strong>{activeDatasetName}</strong>
+                  </div>
+
+                  <h1>Data Exploration</h1>
+
+                  <p>
+                    Explore your dataset through interactive
+                    visualizations and automated insights.
+                  </p>
+                </div>
+
+                <div className="workspace-actions">
+                  <div className="active-columns">
+                    <div className="column-pill">
+                      <span>X</span>
+                      {xCol}
+                    </div>
+
+                    <div className="column-pill">
+                      <span>Y</span>
+                      {yCol}
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div ref={insightsRef} className="insights-wrapper">
-                <InsightsPanel data={selectedData} xCol={xCol} yCol={yCol} />
-                <div className="export-btn">
+              {/* Dataset quick stats */}
+
+              <div className="quick-stats">
+
+                <div className="stat-card">
+                  <div className="stat-icon">
+                    <i className="fa-solid fa-table"></i>
+                  </div>
+
+                  <div>
+                    <span>Rows</span>
+                    <strong>
+                      {selectedData.length.toLocaleString()}
+                    </strong>
+                  </div>
+                </div>
+
+                <div className="stat-card">
+                  <div className="stat-icon">
+                    <i className="fa-solid fa-columns"></i>
+                  </div>
+
+                  <div>
+                    <span>Columns</span>
+                    <strong>{columns.length}</strong>
+                  </div>
+                </div>
+
+                <div className="stat-card">
+                  <div className="stat-icon">
+                    <i className="fa-solid fa-chart-simple"></i>
+                  </div>
+
+                  <div>
+                    <span>Visualizations</span>
+                    <strong>
+                      {chartType.length === 0
+                        ? "Auto"
+                        : chartType.length}
+                    </strong>
+                  </div>
+                </div>
+
+                <div className="stat-card">
+                  <div className="stat-icon">
+                    <i className="fa-solid fa-layer-group"></i>
+                  </div>
+
+                  <div>
+                    <span>Datasets</span>
+                    <strong>{datasets.length}</strong>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* =================================================
+                  VISUALIZATION
+              ================================================= */}
+
+              <section className="dashboard-card visualization-card">
+
+                <div className="card-header">
+
+                  <div className="card-title-group">
+                    <div className="card-icon">
+                      <i className="fa-solid fa-chart-line"></i>
+                    </div>
+
+                    <div>
+                      <h2>Visualizations</h2>
+
+                      <p>
+                        {chartType.length === 0
+                          ? "Recommended charts based on your data"
+                          : `${chartType.length} chart types selected`}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="visualization-meta">
+                    <span className="live-indicator">
+                      <span></span>
+                      Live
+                    </span>
+                  </div>
+
+                </div>
+
+                <div
+                  ref={chartRef}
+                  className="chart-workspace"
+                >
+                  {xCol && yCol && (
+                    <ChartRenderer
+                      data={selectedData}
+                      xCol={xCol}
+                      yCol={yCol}
+                      chartType={chartType}
+                      customChart={customChartFunction}
+                      treeLayout={treeLayout}
+                    />
+                  )}
+                </div>
+
+              </section>
+
+              {/* =================================================
+                  ANALYTICS GRID
+              ================================================= */}
+
+              <div className="analytics-grid">
+
+                {/* Dataset Summary */}
+
+                <section
+                  ref={summaryRef}
+                  className="dashboard-card summary-card"
+                >
+                  <div className="card-header">
+
+                    <div className="card-title-group">
+                      <div className="card-icon">
+                        <i className="fa-solid fa-table-list"></i>
+                      </div>
+
+                      <div>
+                        <h2>Dataset Summary</h2>
+                        <p>
+                          Statistical overview of your data
+                        </p>
+                      </div>
+                    </div>
+
+                  </div>
+
+                  <div className="card-body">
+                    <DatasetSummary data={selectedData} />
+                  </div>
+                </section>
+
+                {/* Insights */}
+
+                <section
+                  ref={insightsRef}
+                  className="dashboard-card insights-card"
+                >
+                  <div className="card-header">
+
+                    <div className="card-title-group">
+                      <div className="card-icon">
+                        <i className="fa-solid fa-lightbulb"></i>
+                      </div>
+
+                      <div>
+                        <h2>Automated Insights</h2>
+                        <p>
+                          Patterns detected in your dataset
+                        </p>
+                      </div>
+                    </div>
+
+                  </div>
+
+                  <div className="card-body">
+                    <InsightsPanel
+                      data={selectedData}
+                      xCol={xCol}
+                      yCol={yCol}
+                    />
+                  </div>
+                </section>
+
+              </div>
+
+              {/* =================================================
+                  EXPORT
+              ================================================= */}
+
+              <section className="export-section">
+
+                <div className="export-content">
+
+                  <div className="export-icon">
+                    <i className="fa-solid fa-file-pdf"></i>
+                  </div>
+
+                  <div>
+                    <h3>Export your analysis</h3>
+
+                    <p>
+                      Generate a PDF report containing your
+                      visualizations, dataset summary, and insights.
+                    </p>
+                  </div>
+
+                </div>
+
+                <div className="export-action">
                   <ReportExporter
                     chartRef={chartRef}
                     insightsRef={insightsRef}
@@ -239,8 +759,10 @@ function App() {
                     yCol={yCol}
                   />
                 </div>
-              </div>
-            </>
+
+              </section>
+
+            </div>
           )}
         </main>
       </div>

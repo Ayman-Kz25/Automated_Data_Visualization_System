@@ -41,7 +41,7 @@ function InsightsPanel({ data, xCol, yCol }) {
 
     // 🔹 Correlation
     if (xVals.length && yVals.length) {
-      const corr = correlation(xVals, yVals).toFixed(2);
+      const corr = correlation(xVals, yVals);
       if (corr > 0.7)
         newInsights.push(
           <span style={{ color: "green" }}>
