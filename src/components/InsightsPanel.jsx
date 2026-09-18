@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import * as d3 from "d3";
-import "../App.css";
 
 function correlation(x, y) {
   const meanX = d3.mean(x);

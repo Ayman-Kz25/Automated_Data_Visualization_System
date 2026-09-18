@@ -1,14 +1,13 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import FileUploader from "./components/FileUploader";
-import DatasetSelector from "./components/DatasetSelector";
-import ColumnSelector from "./components/ColumnSelector";
-import ChartRenderer from "./components/ChartRenderer";
-import InsightsPanel from "./components/InsightsPanel";
-import ReportExporter from "./components/ReportExporter";
+import FileUploader from "./components/FileUploader.jsx";
+import DatasetSelector from "./components/DatasetSelector.jsx";
+import ColumnSelector from "./components/ColumnSelector.jsx";
+import ChartRenderer from "./components/ChartRenderer.jsx";
+import InsightsPanel from "./components/InsightsPanel.jsx";
+import ReportExporter from "./components/ReportExporter.jsx";
 import TreeChart from "./components/TreeChart";
-import DatasetSummary from './components/DatasetSummary';
-import "./App.css";
-import { summary } from "framer-motion/client";
+import DatasetSummary from './components/DatasetSummary.jsx';
+// import { summary } from "framer-motion/client";
 import logo from './assets/pie-chart.png';
 
 function App() {

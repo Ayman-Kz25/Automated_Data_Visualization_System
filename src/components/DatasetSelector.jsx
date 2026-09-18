@@ -1,5 +1,4 @@
 import React from "react";
-import '../App.css';
 
 function DatasetSelector({ datasets, activeDataset, setActiveDataset }) {
   return (

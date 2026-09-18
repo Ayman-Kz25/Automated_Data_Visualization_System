@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import * as d3 from "d3";
-import "../App.css";
 
 function DatasetSummary({ data }) {
   const [summary, setSummary] = useState([]);

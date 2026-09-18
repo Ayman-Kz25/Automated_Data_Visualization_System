@@ -1,7 +1,6 @@
 import React from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import "../App.css";
 
 function ReportExporter({ chartRef, insightsRef, summaryRef, xCol, yCol }) {
   const handleDownloadPDF = async () => {

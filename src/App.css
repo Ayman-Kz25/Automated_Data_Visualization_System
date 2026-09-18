@@ -1,3 +1,5 @@
+@import 'tailwindcss';
+
 /* App Container */
 .app-container {
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
