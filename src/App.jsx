@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 
 import FileUploader from "./components/FileUploader.jsx";
 import DatasetSelector from "./components/DatasetSelector.jsx";
@@ -35,102 +35,65 @@ function App() {
     "tree",
   ];
 
-  /* -------------------------------------------------------
-     Dataset selection
-  ------------------------------------------------------- */
-
+  // Dataset selection
   const handleDatasetSelect = (index) => {
     setActiveDataset(Number(index));
   };
 
-  /* -------------------------------------------------------
-     Selected dataset
-  ------------------------------------------------------- */
+  // Automatically select first dataset
+  const effectiveActiveDataset =
+    activeDataset !== null ? activeDataset : datasets.length > 0 ? 0 : null;
 
+  //  Selected dataset
   const selectedData = useMemo(
     () =>
-      activeDataset !== null && datasets[activeDataset]
-        ? datasets[activeDataset].data || []
+      effectiveActiveDataset !== null && datasets[effectiveActiveDataset]
+        ? datasets[effectiveActiveDataset].data || []
         : [],
-    [activeDataset, datasets]
+    [effectiveActiveDataset, datasets],
   );
 
-  /* -------------------------------------------------------
-     Dataset columns
-  ------------------------------------------------------- */
-
+  //  Dataset columns
   const columns = useMemo(
     () => (selectedData.length ? Object.keys(selectedData[0]) : []),
-    [selectedData]
+    [selectedData],
   );
 
-  /* -------------------------------------------------------
-     Automatically select columns
-  ------------------------------------------------------- */
+  // Automatically select columns
+  const effectiveXCol = useMemo(() => {
+    return xCol && columns.includes(xCol) ? xCol : columns[0];
+  }, [columns, xCol]);
 
-  useEffect(() => {
-    if (columns.length > 0) {
-      setXCol((current) =>
-        current && columns.includes(current) ? current : columns[0]
-      );
+  const effectiveYCol = useMemo(() => {
+    if (columns.length === 0) return "";
+    return yCol && columns.includes(yCol) ? yCol : columns[1] || columns[0];
+  }, [columns, yCol]);
 
-      setYCol((current) =>
-        current && columns.includes(current)
-          ? current
-          : columns[1] || columns[0]
-      );
-    } else {
-      setXCol("");
-      setYCol("");
-    }
-  }, [columns]);
-
-  /* -------------------------------------------------------
-     Automatically select first dataset
-  ------------------------------------------------------- */
-
-  useEffect(() => {
-    if (datasets.length > 0 && activeDataset === null) {
-      setActiveDataset(0);
-    }
-  }, [datasets, activeDataset]);
-
-  /* -------------------------------------------------------
-     Theme
-  ------------------------------------------------------- */
-
+  //  Theme
   useEffect(() => {
     document.body.className = theme;
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme((previous) =>
-      previous === "light" ? "dark" : "light"
-    );
+    setTheme((previous) => (previous === "light" ? "dark" : "light"));
   };
 
-  /* -------------------------------------------------------
-     Chart selection
-  ------------------------------------------------------- */
-
+  // Chart selection
   const toggleChartType = (chart) => {
     setChartType((previous) =>
       previous.includes(chart)
         ? previous.filter((item) => item !== chart)
-        : [...previous, chart]
+        : [...previous, chart],
     );
   };
 
   const toggleAllCharts = () => {
     setChartType((previous) =>
-      previous.length === allChartTypes.length ? [] : allChartTypes
+      previous.length === allChartTypes.length ? [] : allChartTypes,
     );
   };
 
-  /* -------------------------------------------------------
-     Custom chart
-  ------------------------------------------------------- */
-
+  // Custom chart
   const customChartFunction = (data) => {
     return (
       <svg width="100%" height="300">
@@ -138,7 +101,7 @@ function App() {
           <circle
             key={index}
             cx={50 + index * 60}
-            cy={300 - entry[yCol] / 5}
+            cy={300 - entry[effectiveYCol] / 5}
             r={20}
             fill="#FEC89A"
           />
@@ -149,16 +112,13 @@ function App() {
 
   const hasData = selectedData.length > 0;
   const activeDatasetName =
-    activeDataset !== null && datasets[activeDataset]
-      ? datasets[activeDataset].name || `Dataset ${activeDataset + 1}`
+    effectiveActiveDataset !== null && datasets[effectiveActiveDataset]
+      ? datasets[effectiveActiveDataset].name || `Dataset ${effectiveActiveDataset + 1}`
       : "No dataset selected";
 
   return (
     <div className={`app-container ${theme}`}>
-      {/* =====================================================
-          TOP NAVIGATION
-      ===================================================== */}
-
+      {/* Top Navigation */}
       <header className="topbar">
         <div className="brand-area">
           <div className="brand-logo">
@@ -167,9 +127,7 @@ function App() {
 
           <div className="brand-copy">
             <span className="brand-name">DataViz</span>
-            <span className="brand-subtitle">
-              Automated Data Visualization
-            </span>
+            <span className="brand-subtitle">Automated Data Visualization</span>
           </div>
         </div>
 
@@ -190,15 +148,11 @@ function App() {
             <div className="data-indicator">
               <i className="fa-solid fa-table"></i>
 
-              <span>
-                {selectedData.length} rows
-              </span>
+              <span>{selectedData.length} rows</span>
 
               <span className="indicator-divider">•</span>
 
-              <span>
-                {columns.length} columns
-              </span>
+              <span>{columns.length} columns</span>
             </div>
           )}
 
@@ -218,18 +172,10 @@ function App() {
         </div>
       </header>
 
-      {/* =====================================================
-          MAIN DASHBOARD
-      ===================================================== */}
-
+      {/* Main Dashboard */}
       <div className="dashboard-shell">
-
-        {/* ===================================================
-            SIDEBAR / CONTROL PANEL
-        =================================================== */}
-
+        {/* Sidebar/Control Panel */}
         <aside className="control-panel">
-
           <div className="panel-heading">
             <div className="panel-heading-icon">
               <i className="fa-solid fa-sliders"></i>
@@ -242,7 +188,6 @@ function App() {
           </div>
 
           {/* Upload */}
-
           <section className="control-section">
             <div className="section-label">
               <span className="section-number">01</span>
@@ -257,7 +202,6 @@ function App() {
           {datasets.length > 0 && (
             <>
               {/* Dataset */}
-
               <section className="control-section">
                 <div className="section-label">
                   <span className="section-number">02</span>
@@ -267,14 +211,13 @@ function App() {
                 <div className="control-card">
                   <DatasetSelector
                     datasets={datasets}
-                    activeDataset={activeDataset}
+                    activeDataset={effectiveActiveDataset}
                     setActiveDataset={handleDatasetSelect}
                   />
                 </div>
               </section>
 
               {/* Columns */}
-
               {activeDataset !== null && columns.length > 0 && (
                 <section className="control-section">
                   <div className="section-label">
@@ -285,8 +228,8 @@ function App() {
                   <div className="control-card">
                     <ColumnSelector
                       columns={columns}
-                      xCol={xCol}
-                      yCol={yCol}
+                      xCol={effectiveXCol}
+                      yCol={effectiveYCol}
                       setXCol={setXCol}
                       setYCol={setYCol}
                     />
@@ -295,7 +238,6 @@ function App() {
               )}
 
               {/* Chart Types */}
-
               <section className="control-section">
                 <div className="section-label">
                   <span className="section-number">04</span>
@@ -303,7 +245,6 @@ function App() {
                 </div>
 
                 <div className="control-card chart-options-card">
-
                   <div className="chart-options-header">
                     <div>
                       <strong>Chart Types</strong>
@@ -339,9 +280,7 @@ function App() {
                           <input
                             type="checkbox"
                             checked={selected}
-                            onChange={() =>
-                              toggleChartType(chart)
-                            }
+                            onChange={() => toggleChartType(chart)}
                           />
 
                           <span className="chart-option-icon">
@@ -383,14 +322,11 @@ function App() {
                           </span>
 
                           <span className="chart-option-name">
-                            {chart.charAt(0).toUpperCase() +
-                              chart.slice(1)}
+                            {chart.charAt(0).toUpperCase() + chart.slice(1)}
                           </span>
 
                           <span className="chart-check">
-                            {selected && (
-                              <i className="fa-solid fa-check"></i>
-                            )}
+                            {selected && <i className="fa-solid fa-check"></i>}
                           </span>
                         </label>
                       );
@@ -400,7 +336,6 @@ function App() {
               </section>
 
               {/* Tree Layout */}
-
               {chartType.includes("tree") && (
                 <section className="control-section">
                   <div className="section-label">
@@ -409,27 +344,17 @@ function App() {
                   </div>
 
                   <div className="control-card layout-card">
-
-                    <label htmlFor="tree-layout">
-                      Layout orientation
-                    </label>
+                    <label htmlFor="tree-layout">Layout orientation</label>
 
                     <select
                       id="tree-layout"
                       value={treeLayout}
-                      onChange={(event) =>
-                        setTreeLayout(event.target.value)
-                      }
+                      onChange={(event) => setTreeLayout(event.target.value)}
                     >
-                      <option value="vertical">
-                        Vertical
-                      </option>
+                      <option value="vertical">Vertical</option>
 
-                      <option value="radial">
-                        Radial
-                      </option>
+                      <option value="radial">Radial</option>
                     </select>
-
                   </div>
                 </section>
               )}
@@ -437,7 +362,6 @@ function App() {
           )}
 
           {/* Sidebar footer */}
-
           <div className="panel-footer">
             <div className="system-status">
               <span className="status-dot"></span>
@@ -450,19 +374,12 @@ function App() {
           </div>
         </aside>
 
-        {/* ===================================================
-            DASHBOARD CONTENT
-        =================================================== */}
+        {/* Dashboard Content */}
 
         <main className="dashboard-main">
-
           {!hasData ? (
-            /* =================================================
-               EMPTY STATE
-            ================================================= */
-
+            /* Empty State */
             <div className="empty-dashboard">
-
               <div className="empty-illustration">
                 <div className="empty-circle">
                   <i className="fa-solid fa-chart-pie"></i>
@@ -478,9 +395,7 @@ function App() {
               </div>
 
               <div className="empty-content">
-                <span className="eyebrow">
-                  DATA VISUALIZATION WORKSPACE
-                </span>
+                <span className="eyebrow">DATA VISUALIZATION WORKSPACE</span>
 
                 <h1>
                   Turn raw data into
@@ -488,9 +403,9 @@ function App() {
                 </h1>
 
                 <p>
-                  Upload a CSV or Excel dataset to begin exploring
-                  patterns, relationships, trends, and insights
-                  through interactive visualizations.
+                  Upload a CSV or Excel dataset to begin exploring patterns,
+                  relationships, trends, and insights through interactive
+                  visualizations.
                 </p>
 
                 <div className="empty-features">
@@ -512,16 +427,10 @@ function App() {
               </div>
             </div>
           ) : (
-            /* =================================================
-               DATASET DASHBOARD
-            ================================================= */
-
+            // Dataset Dashboard
             <div className="workspace">
-
               {/* Dashboard heading */}
-
               <div className="workspace-header">
-
                 <div>
                   <div className="breadcrumb">
                     <span>Workspace</span>
@@ -532,8 +441,8 @@ function App() {
                   <h1>Data Exploration</h1>
 
                   <p>
-                    Explore your dataset through interactive
-                    visualizations and automated insights.
+                    Explore your dataset through interactive visualizations and
+                    automated insights.
                   </p>
                 </div>
 
@@ -541,21 +450,19 @@ function App() {
                   <div className="active-columns">
                     <div className="column-pill">
                       <span>X</span>
-                      {xCol}
+                      {effectiveXCol}
                     </div>
 
                     <div className="column-pill">
                       <span>Y</span>
-                      {yCol}
+                      {effectiveYCol}
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Dataset quick stats */}
-
               <div className="quick-stats">
-
                 <div className="stat-card">
                   <div className="stat-icon">
                     <i className="fa-solid fa-table"></i>
@@ -563,9 +470,7 @@ function App() {
 
                   <div>
                     <span>Rows</span>
-                    <strong>
-                      {selectedData.length.toLocaleString()}
-                    </strong>
+                    <strong>{selectedData.length.toLocaleString()}</strong>
                   </div>
                 </div>
 
@@ -588,9 +493,7 @@ function App() {
                   <div>
                     <span>Visualizations</span>
                     <strong>
-                      {chartType.length === 0
-                        ? "Auto"
-                        : chartType.length}
+                      {chartType.length === 0 ? "Auto" : chartType.length}
                     </strong>
                   </div>
                 </div>
@@ -605,17 +508,11 @@ function App() {
                     <strong>{datasets.length}</strong>
                   </div>
                 </div>
-
               </div>
 
-              {/* =================================================
-                  VISUALIZATION
-              ================================================= */}
-
+              {/* Visualization */}
               <section className="dashboard-card visualization-card">
-
                 <div className="card-header">
-
                   <div className="card-title-group">
                     <div className="card-icon">
                       <i className="fa-solid fa-chart-line"></i>
@@ -638,41 +535,30 @@ function App() {
                       Live
                     </span>
                   </div>
-
                 </div>
 
-                <div
-                  ref={chartRef}
-                  className="chart-workspace"
-                >
-                  {xCol && yCol && (
+                <div ref={chartRef} className="chart-workspace">
+                  {effectiveXCol && yCol && (
                     <ChartRenderer
                       data={selectedData}
-                      xCol={xCol}
-                      yCol={yCol}
+                      xCol={effectiveXCol}
+                      yCol={effectiveYCol}
                       chartType={chartType}
                       customChart={customChartFunction}
                       treeLayout={treeLayout}
                     />
                   )}
                 </div>
-
               </section>
 
-              {/* =================================================
-                  ANALYTICS GRID
-              ================================================= */}
-
+              {/* Analytics Grid */}
               <div className="analytics-grid">
-
                 {/* Dataset Summary */}
-
                 <section
                   ref={summaryRef}
                   className="dashboard-card summary-card"
                 >
                   <div className="card-header">
-
                     <div className="card-title-group">
                       <div className="card-icon">
                         <i className="fa-solid fa-table-list"></i>
@@ -680,12 +566,9 @@ function App() {
 
                       <div>
                         <h2>Dataset Summary</h2>
-                        <p>
-                          Statistical overview of your data
-                        </p>
+                        <p>Statistical overview of your data</p>
                       </div>
                     </div>
-
                   </div>
 
                   <div className="card-body">
@@ -694,13 +577,11 @@ function App() {
                 </section>
 
                 {/* Insights */}
-
                 <section
                   ref={insightsRef}
                   className="dashboard-card insights-card"
                 >
                   <div className="card-header">
-
                     <div className="card-title-group">
                       <div className="card-icon">
                         <i className="fa-solid fa-lightbulb"></i>
@@ -708,33 +589,24 @@ function App() {
 
                       <div>
                         <h2>Automated Insights</h2>
-                        <p>
-                          Patterns detected in your dataset
-                        </p>
+                        <p>Patterns detected in your dataset</p>
                       </div>
                     </div>
-
                   </div>
 
                   <div className="card-body">
                     <InsightsPanel
                       data={selectedData}
-                      xCol={xCol}
-                      yCol={yCol}
+                      xCol={effectiveXCol}
+                      yCol={effectiveYCol}
                     />
                   </div>
                 </section>
-
               </div>
 
-              {/* =================================================
-                  EXPORT
-              ================================================= */}
-
+              {/* Export */}
               <section className="export-section">
-
                 <div className="export-content">
-
                   <div className="export-icon">
                     <i className="fa-solid fa-file-pdf"></i>
                   </div>
@@ -743,11 +615,10 @@ function App() {
                     <h3>Export your analysis</h3>
 
                     <p>
-                      Generate a PDF report containing your
-                      visualizations, dataset summary, and insights.
+                      Generate a PDF report containing your visualizations,
+                      dataset summary, and insights.
                     </p>
                   </div>
-
                 </div>
 
                 <div className="export-action">
@@ -755,13 +626,11 @@ function App() {
                     chartRef={chartRef}
                     insightsRef={insightsRef}
                     summaryRef={summaryRef}
-                    xCol={xCol}
-                    yCol={yCol}
+                    xCol={effectiveXCol}
+                    yCol={effectiveYCol}
                   />
                 </div>
-
               </section>
-
             </div>
           )}
         </main>
