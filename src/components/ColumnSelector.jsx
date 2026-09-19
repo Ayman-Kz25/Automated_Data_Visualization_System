@@ -7,10 +7,7 @@ function ColumnSelector({
   setXCol,
   setYCol,
 }) {
-  /* =========================================================
-     NORMALIZE COLUMNS
-     ========================================================= */
-
+  /* NORMALIZE COLUMNS */
   const availableColumns = useMemo(() => {
     if (!Array.isArray(columns)) {
       return [];
@@ -23,10 +20,7 @@ function ColumnSelector({
     );
   }, [columns]);
 
-  /* =========================================================
-     AUTO SELECT DEFAULT COLUMNS
-     ========================================================= */
-
+  /* AUTO SELECT DEFAULT COLUMNS */
   useEffect(() => {
     if (availableColumns.length === 0) {
       return;
@@ -62,10 +56,7 @@ function ColumnSelector({
     setYCol,
   ]);
 
-  /* =========================================================
-     EMPTY STATE
-     ========================================================= */
-
+  /* EMPTY STATE */
   if (availableColumns.length === 0) {
     return (
       <div className="column-selector-empty">
@@ -82,10 +73,7 @@ function ColumnSelector({
     );
   }
 
-  /* =========================================================
-     SELECTED VALUES
-     ========================================================= */
-
+  /* SELECTED VALUES */
   const selectedX = availableColumns.includes(xCol)
     ? xCol
     : availableColumns[0];
@@ -96,16 +84,10 @@ function ColumnSelector({
       ? availableColumns[1]
       : availableColumns[0];
 
-  /* =========================================================
-     RENDER
-     ========================================================= */
-
+  /* RENDER */
   return (
     <div className="column-selector">
-      {/* =====================================================
-          X AXIS
-          ===================================================== */}
-
+      {/* X AXIS */}
       <div className="column-selector-field">
         <label htmlFor="x-column">
           <span className="column-selector-label">
@@ -134,10 +116,7 @@ function ColumnSelector({
         </select>
       </div>
 
-      {/* =====================================================
-          Y AXIS
-          ===================================================== */}
-
+      {/* Y AXIS */}
       <div className="column-selector-field">
         <label htmlFor="y-column">
           <span className="column-selector-label">

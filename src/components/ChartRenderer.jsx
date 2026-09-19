@@ -3,10 +3,7 @@ import ReactECharts from "echarts-for-react";
 import { detectColumnTypes, suggestCharts } from "../Utils/DataUtils";
 import TreeChart from "./TreeChart";
 
-/* =========================================================
-   CHART PALETTE
-   ========================================================= */
-
+/* CHART PALETTE */
 const COLORS = [
   "#6C63FF",
   "#FF6B6B",
@@ -22,10 +19,7 @@ const COLORS = [
   "#F1948A",
 ];
 
-/* =========================================================
-   HELPERS
-   ========================================================= */
-
+/* HELPERS */
 const isDarkMode = () =>
   document.body.classList.contains("dark") ||
   document.documentElement.classList.contains("dark");
@@ -44,10 +38,7 @@ const getThemeColors = () => {
   };
 };
 
-/* =========================================================
-   VALUE CONVERSION
-   ========================================================= */
-
+/* VALUE CONVERSION */
 const toNumber = (value) => {
   if (typeof value === "number") {
     return Number.isFinite(value) ? value : null;
@@ -67,10 +58,7 @@ const toNumber = (value) => {
   return Number.isFinite(number) ? number : null;
 };
 
-/* =========================================================
-   FORMATTERS
-   ========================================================= */
-
+/* FORMATTERS */
 const formatValue = (value) => {
   if (value === null || value === undefined) {
     return "N/A";
@@ -85,20 +73,14 @@ const formatValue = (value) => {
   return String(value);
 };
 
-/* =========================================================
-   CHART OPTION FACTORY
-   ========================================================= */
-
+/* CHART OPTION FACTORY */
 function buildChartOption({ type, data, xCol, yCol, colors }) {
   const theme = getThemeColors();
 
   const categories = data.map((item) => item[xCol]);
   const values = data.map((item) => toNumber(item[yCol]));
 
-  /* =======================================================
-     COMMON
-     ======================================================= */
-
+  /* COMMON */
   const common = {
     animation: true,
     animationDuration: 650,
@@ -145,10 +127,7 @@ function buildChartOption({ type, data, xCol, yCol, colors }) {
     },
   };
 
-  /* =======================================================
-     LINE
-     ======================================================= */
-
+  /* LINE */
   if (type === "line") {
     return {
       ...common,
@@ -260,10 +239,7 @@ function buildChartOption({ type, data, xCol, yCol, colors }) {
     };
   }
 
-  /* =======================================================
-     BAR
-     ======================================================= */
-
+  /* BAR */
   if (type === "bar") {
     return {
       ...common,
@@ -353,10 +329,7 @@ function buildChartOption({ type, data, xCol, yCol, colors }) {
     };
   }
 
-  /* =======================================================
-     SCATTER
-     ======================================================= */
-
+  /* SCATTER */
   if (type === "scatter") {
     const scatterData = data
       .map((item) => [
@@ -452,10 +425,7 @@ function buildChartOption({ type, data, xCol, yCol, colors }) {
     };
   }
 
-  /* =======================================================
-     AREA
-     ======================================================= */
-
+  /* AREA */
   if (type === "area") {
     return {
       ...common,
@@ -550,10 +520,7 @@ function buildChartOption({ type, data, xCol, yCol, colors }) {
     };
   }
 
-  /* =======================================================
-     PIE / DONUT
-     ======================================================= */
-
+  /* PIE / DONUT */
   if (type === "pie") {
     const pieData = data
       .map((item, index) => ({
@@ -629,10 +596,7 @@ function buildChartOption({ type, data, xCol, yCol, colors }) {
     };
   }
 
-  /* =======================================================
-     RADAR
-     ======================================================= */
-
+  /* RADAR */
   if (type === "radar") {
     const numericValues = values.map((value) =>
       value === null ? 0 : value
@@ -714,10 +678,7 @@ function buildChartOption({ type, data, xCol, yCol, colors }) {
     };
   }
 
-  /* =======================================================
-     TREEMAP
-     ======================================================= */
-
+  /* TREEMAP */
   if (type === "treemap") {
     const treeData = data
       .map((item, index) => ({
@@ -797,10 +758,7 @@ function buildChartOption({ type, data, xCol, yCol, colors }) {
     };
   }
 
-  /* =======================================================
-     FUNNEL
-     ======================================================= */
-
+  /* FUNNEL */
   if (type === "funnel") {
     const funnelData = data
       .map((item, index) => ({
@@ -878,10 +836,7 @@ function buildChartOption({ type, data, xCol, yCol, colors }) {
   return {};
 }
 
-/* =========================================================
-   MAIN COMPONENT
-   ========================================================= */
-
+/* MAIN COMPONENT */
 function ChartRenderer({
   data,
   xCol,
@@ -889,10 +844,8 @@ function ChartRenderer({
   chartType,
   treeLayout,
 }) {
-  /* =======================================================
-     VALIDATION
-     ======================================================= */
 
+  /* VALIDATION */
   if (!data || data.length === 0) {
     return (
       <div className="chart-empty-state">
@@ -917,10 +870,7 @@ function ChartRenderer({
     return null;
   }
 
-  /* =======================================================
-     AUTOMATIC CHART SUGGESTIONS
-     ======================================================= */
-
+  /* AUTOMATIC CHART SUGGESTIONS */
   const suggestions = suggestCharts(
     types[xCol],
     types[yCol]
@@ -931,23 +881,15 @@ function ChartRenderer({
       ? chartType
       : suggestions;
 
-  /* =======================================================
-     THEME
-     ======================================================= */
-
+  /* THEME */
   const themeKey = isDarkMode() ? "dark" : "light";
 
-  /* =======================================================
-     RENDER
-     ======================================================= */
-
+  /* RENDER */
   return (
     <div className="charts">
       {chartsToRender.map((type, index) => {
-        /* ===================================================
-           TREE CHART
-           =================================================== */
 
+        /* TREE CHART */
         if (type === "tree") {
           return (
             <div
@@ -984,10 +926,7 @@ function ChartRenderer({
           );
         }
 
-        /* ===================================================
-           ECHARTS
-           =================================================== */
-
+        /* ECHARTS */
         const option = buildChartOption({
           type,
           data,
