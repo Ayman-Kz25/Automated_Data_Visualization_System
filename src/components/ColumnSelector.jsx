@@ -95,7 +95,7 @@ function ColumnSelector({
           </span>
 
           <span className="column-selector-hint">
-            Category / independent variable
+            Category / independent<br/> variable
           </span>
         </label>
 
@@ -124,7 +124,7 @@ function ColumnSelector({
           </span>
 
           <span className="column-selector-hint">
-            Numeric / dependent variable
+            Numeric / dependent <br /> variable
           </span>
         </label>
 

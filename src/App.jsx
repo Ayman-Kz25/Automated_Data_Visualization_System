@@ -17,7 +17,6 @@ function App() {
   const [xCol, setXCol] = useState("");
   const [yCol, setYCol] = useState("");
   const [chartType, setChartType] = useState([]);
-  const [treeLayout, setTreeLayout] = useState("vertical");
 
   const chartRef = useRef(null);
   const insightsRef = useRef(null);
@@ -26,25 +25,53 @@ function App() {
   const allChartTypes = [
     "line",
     "bar",
-    "scatter",
+    "horizontalBar",
     "area",
+    "scatter",
     "pie",
-    "radar",
-    "treemap",
-    "funnel",
-    "tree",
+    "doughnut",
+    "histogram",
+    "boxplot",
   ];
 
-  // Dataset selection
+  const chartLabels = {
+    line: "Line",
+    bar: "Bar",
+    horizontalBar: "Horizontal Bar",
+    area: "Area",
+    scatter: "Scatter",
+    pie: "Pie",
+    doughnut: "Doughnut",
+    histogram: "Histogram",
+    boxplot: "Boxplot",
+  };
+
+  const chartIcons = {
+    line: "fa-chart-line",
+    bar: "fa-chart-column",
+    horizontalBar: "fa-chart-bar",
+    area: "fa-chart-area",
+    scatter: "fa-braille",
+    pie: "fa-chart-pie",
+    doughnut: "fa-circle-notch",
+    histogram: "fa-chart-simple",
+    boxplot: "fa-chart-column",
+  };
+
+  /* Dataset selection */
   const handleDatasetSelect = (index) => {
     setActiveDataset(Number(index));
   };
 
-  // Automatically select first dataset
+  /* Automatically select first dataset */
   const effectiveActiveDataset =
-    activeDataset !== null ? activeDataset : datasets.length > 0 ? 0 : null;
+    activeDataset !== null
+      ? activeDataset
+      : datasets.length > 0
+        ? 0
+        : null;
 
-  //  Selected dataset
+  /* Selected dataset */
   const selectedData = useMemo(
     () =>
       effectiveActiveDataset !== null && datasets[effectiveActiveDataset]
@@ -53,23 +80,29 @@ function App() {
     [effectiveActiveDataset, datasets],
   );
 
-  //  Dataset columns
+  /* Dataset columns */
   const columns = useMemo(
     () => (selectedData.length ? Object.keys(selectedData[0]) : []),
     [selectedData],
   );
 
-  // Automatically select columns
+  /* Automatically select X column */
   const effectiveXCol = useMemo(() => {
+    if (!columns.length) return "";
+
     return xCol && columns.includes(xCol) ? xCol : columns[0];
   }, [columns, xCol]);
 
+  /* Automatically select Y column */
   const effectiveYCol = useMemo(() => {
     if (columns.length === 0) return "";
-    return yCol && columns.includes(yCol) ? yCol : columns[1] || columns[0];
+
+    return yCol && columns.includes(yCol)
+      ? yCol
+      : columns[1] || columns[0];
   }, [columns, yCol]);
 
-  //  Theme
+  /* Theme */
   useEffect(() => {
     document.body.className = theme;
   }, [theme]);
@@ -78,7 +111,7 @@ function App() {
     setTheme((previous) => (previous === "light" ? "dark" : "light"));
   };
 
-  // Chart selection
+  /* Chart selection */
   const toggleChartType = (chart) => {
     setChartType((previous) =>
       previous.includes(chart)
@@ -89,31 +122,38 @@ function App() {
 
   const toggleAllCharts = () => {
     setChartType((previous) =>
-      previous.length === allChartTypes.length ? [] : allChartTypes,
+      previous.length === allChartTypes.length ? [] : [...allChartTypes],
     );
   };
 
-  // Custom chart
+  /* Custom chart */
   const customChartFunction = (data) => {
     return (
-      <svg width="100%" height="300">
-        {data.map((entry, index) => (
-          <circle
-            key={index}
-            cx={50 + index * 60}
-            cy={300 - entry[effectiveYCol] / 5}
-            r={20}
-            fill="#FEC89A"
-          />
-        ))}
+      <svg width="100%" height="300" role="img" aria-label="Custom chart">
+        {data.map((entry, index) => {
+          const rawValue = Number(entry?.[effectiveYCol]);
+          const value = Number.isFinite(rawValue) ? rawValue : 0;
+
+          return (
+            <circle
+              key={index}
+              cx={50 + index * 60}
+              cy={300 - value / 5}
+              r={20}
+              fill="#f087c8"
+            />
+          );
+        })}
       </svg>
     );
   };
 
   const hasData = selectedData.length > 0;
+
   const activeDatasetName =
     effectiveActiveDataset !== null && datasets[effectiveActiveDataset]
-      ? datasets[effectiveActiveDataset].name || `Dataset ${effectiveActiveDataset + 1}`
+      ? datasets[effectiveActiveDataset].name ||
+        `Dataset ${effectiveActiveDataset + 1}`
       : "No dataset selected";
 
   return (
@@ -127,7 +167,9 @@ function App() {
 
           <div className="brand-copy">
             <span className="brand-name">DataViz</span>
-            <span className="brand-subtitle">Automated Data Visualization</span>
+            <span className="brand-subtitle">
+              Automated Data Visualization
+            </span>
           </div>
         </div>
 
@@ -218,7 +260,7 @@ function App() {
               </section>
 
               {/* Columns */}
-              {activeDataset !== null && columns.length > 0 && (
+              {effectiveActiveDataset !== null && columns.length > 0 && (
                 <section className="control-section">
                   <div className="section-label">
                     <span className="section-number">03</span>
@@ -248,9 +290,10 @@ function App() {
                   <div className="chart-options-header">
                     <div>
                       <strong>Chart Types</strong>
+
                       <span>
                         {chartType.length === 0
-                          ? "Automatic"
+                          ? "Automatic recommendations"
                           : `${chartType.length} selected`}
                       </span>
                     </div>
@@ -284,80 +327,37 @@ function App() {
                           />
 
                           <span className="chart-option-icon">
-                            {chart === "line" && (
-                              <i className="fa-solid fa-chart-line"></i>
-                            )}
-
-                            {chart === "bar" && (
-                              <i className="fa-solid fa-chart-column"></i>
-                            )}
-
-                            {chart === "scatter" && (
-                              <i className="fa-solid fa-braille"></i>
-                            )}
-
-                            {chart === "area" && (
-                              <i className="fa-solid fa-chart-area"></i>
-                            )}
-
-                            {chart === "pie" && (
-                              <i className="fa-solid fa-chart-pie"></i>
-                            )}
-
-                            {chart === "radar" && (
-                              <i className="fa-solid fa-spider"></i>
-                            )}
-
-                            {chart === "treemap" && (
-                              <i className="fa-solid fa-table-cells-large"></i>
-                            )}
-
-                            {chart === "funnel" && (
-                              <i className="fa-solid fa-filter"></i>
-                            )}
-
-                            {chart === "tree" && (
-                              <i className="fa-solid fa-sitemap"></i>
-                            )}
+                            <i
+                              className={`fa-solid ${
+                                chartIcons[chart] || "fa-chart-simple"
+                              }`}
+                            ></i>
                           </span>
 
                           <span className="chart-option-name">
-                            {chart.charAt(0).toUpperCase() + chart.slice(1)}
+                            {chartLabels[chart] || chart}
                           </span>
 
                           <span className="chart-check">
-                            {selected && <i className="fa-solid fa-check"></i>}
+                            {selected && (
+                              <i className="fa-solid fa-check"></i>
+                            )}
                           </span>
                         </label>
                       );
                     })}
                   </div>
+
+                  <div className="chart-options-hint">
+                    <i className="fa-solid fa-circle-info"></i>
+
+                    <span>
+                      Leave all unchecked to let DataViz recommend charts
+                      automatically.
+                    </span>
+                  </div>
                 </div>
               </section>
-
-              {/* Tree Layout */}
-              {chartType.includes("tree") && (
-                <section className="control-section">
-                  <div className="section-label">
-                    <span className="section-number">05</span>
-                    <span>Tree Layout</span>
-                  </div>
-
-                  <div className="control-card layout-card">
-                    <label htmlFor="tree-layout">Layout orientation</label>
-
-                    <select
-                      id="tree-layout"
-                      value={treeLayout}
-                      onChange={(event) => setTreeLayout(event.target.value)}
-                    >
-                      <option value="vertical">Vertical</option>
-
-                      <option value="radial">Radial</option>
-                    </select>
-                  </div>
-                </section>
-              )}
             </>
           )}
 
@@ -375,7 +375,6 @@ function App() {
         </aside>
 
         {/* Dashboard Content */}
-
         <main className="dashboard-main">
           {!hasData ? (
             /* Empty State */
@@ -427,7 +426,7 @@ function App() {
               </div>
             </div>
           ) : (
-            // Dataset Dashboard
+            /* Dataset Dashboard */
             <div className="workspace">
               {/* Dashboard heading */}
               <div className="workspace-header">
@@ -492,6 +491,7 @@ function App() {
 
                   <div>
                     <span>Visualizations</span>
+
                     <strong>
                       {chartType.length === 0 ? "Auto" : chartType.length}
                     </strong>
@@ -538,14 +538,13 @@ function App() {
                 </div>
 
                 <div ref={chartRef} className="chart-workspace">
-                  {effectiveXCol && yCol && (
+                  {effectiveXCol && effectiveYCol && (
                     <ChartRenderer
                       data={selectedData}
                       xCol={effectiveXCol}
                       yCol={effectiveYCol}
                       chartType={chartType}
                       customChart={customChartFunction}
-                      treeLayout={treeLayout}
                     />
                   )}
                 </div>

@@ -1,98 +1,4 @@
-/* ROOT / RESET */
-:root {
-  --font-sans:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
 
-  --bg: #f7f8fc;
-  --bg-secondary: #f0f2f7;
-  --surface: #ffffff;
-  --surface-hover: #fafbff;
-  --surface-soft: #f7f8fc;
-
-  --text: #172033;
-  --text-secondary: #5f687a;
-  --text-muted: #8a93a5;
-  --text-light: #a5adbb;
-
-  --border: #e5e8ef;
-  --border-strong: #d7dce6;
-
-  --primary: #6c63ff;
-  --primary-dark: #554bdc;
-  --primary-light: #eeecff;
-  --primary-soft: #f5f3ff;
-
-  --accent: #ff8b5c;
-  --accent-light: #fff0e9;
-
-  --success: #20b486;
-  --success-light: #e8faf4;
-
-  --warning: #f4a62a;
-  --warning-light: #fff6df;
-
-  --danger: #e85d75;
-  --danger-light: #fff0f3;
-
-  --shadow-xs: 0 1px 2px rgba(20, 25, 40, 0.03);
-  --shadow-sm: 0 3px 12px rgba(20, 25, 40, 0.05);
-  --shadow-md: 0 10px 30px rgba(20, 25, 40, 0.07);
-  --shadow-lg: 0 18px 50px rgba(20, 25, 40, 0.1);
-
-  --radius-xs: 6px;
-  --radius-sm: 9px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 22px;
-
-  --sidebar-width: 330px;
-  --topbar-height: 76px;
-
-  --transition: 180ms ease;
-}
-
-/* =========================================================
-   DARK THEME
-   ========================================================= */
-
-body.dark {
-  --bg: #10131b;
-  --bg-secondary: #171b25;
-  --surface: #191e29;
-  --surface-hover: #202633;
-  --surface-soft: #171b24;
-
-  --text: #f2f4f8;
-  --text-secondary: #aeb6c6;
-  --text-muted: #818a9c;
-  --text-light: #687184;
-
-  --border: #2b3240;
-  --border-strong: #3a4353;
-
-  --primary: #8279ff;
-  --primary-dark: #7066ef;
-  --primary-light: #29264a;
-  --primary-soft: #211f39;
-
-  --accent: #ff9b70;
-  --accent-light: #38251f;
-
-  --success: #38c99a;
-  --success-light: #17362e;
-
-  --warning: #f6b94b;
-  --warning-light: #3a2f19;
-
-  --danger: #f2768c;
-  --danger-light: #3b2028;
-
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.15);
-  --shadow-sm: 0 4px 15px rgba(0, 0, 0, 0.18);
-  --shadow-md: 0 12px 30px rgba(0, 0, 0, 0.25);
-  --shadow-lg: 0 20px 55px rgba(0, 0, 0, 0.35);
-}
 
 /* =========================================================
    GLOBAL
@@ -3489,5 +3395,322 @@ body.dark option {
 
   .tree-chart-svg {
     min-height: 400px;
+  }
+}
+
+/* Chart options hint */
+.chart-options-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-top: 14px;
+  padding: 11px 12px;
+  border: 1px solid rgba(52, 109, 146, 0.16);
+  border-radius: 10px;
+  background: rgba(52, 109, 146, 0.05);
+  color: #5f6f7a;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.chart-options-hint i {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: #346d92;
+  font-size: 13px;
+}
+
+.chart-options-hint span {
+  display: block;
+}
+
+/* Dark theme */
+body.dark .chart-options-hint,
+.app-container.dark .chart-options-hint {
+  border-color: rgba(37, 163, 218, 0.2);
+  background: rgba(37, 163, 218, 0.08);
+  color: #aebbc5;
+}
+
+body.dark .chart-options-hint i,
+.app-container.dark .chart-options-hint i {
+  color: #25a3da;
+}
+
+/* Chart options header */
+.chart-options-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.chart-options-header > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.chart-options-header strong {
+  color: #263b4a;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.chart-options-header span {
+  color: #7b8993;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+body.dark .chart-options-header strong,
+.app-container.dark .chart-options-header strong {
+  color: #edf3f7;
+}
+
+body.dark .chart-options-header span,
+.app-container.dark .chart-options-header span {
+  color: #9caeb9;
+}
+
+/* Select all button */
+.select-all-button {
+  border: 1px solid rgba(52, 109, 146, 0.2);
+  border-radius: 8px;
+  padding: 6px 11px;
+  background: transparent;
+  color: #346d92;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.select-all-button:hover {
+  background: rgba(52, 109, 146, 0.08);
+  border-color: rgba(52, 109, 146, 0.35);
+  transform: translateY(-1px);
+}
+
+.select-all-button:active {
+  transform: translateY(0);
+}
+
+body.dark .select-all-button,
+.app-container.dark .select-all-button {
+  border-color: rgba(37, 163, 218, 0.25);
+  color: #25a3da;
+}
+
+body.dark .select-all-button:hover,
+.app-container.dark .select-all-button:hover {
+  background: rgba(37, 163, 218, 0.1);
+  border-color: rgba(37, 163, 218, 0.4);
+}
+
+/* Chart options grid */
+.chart-options-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+/* Individual chart option */
+.chart-option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  min-height: 48px;
+  padding: 9px 10px;
+  border: 1px solid rgba(52, 109, 146, 0.12);
+  border-radius: 10px;
+  background: #ffffff;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.chart-option:hover {
+  border-color: rgba(52, 109, 146, 0.3);
+  background: rgba(52, 109, 146, 0.035);
+  box-shadow: 0 4px 12px rgba(31, 53, 67, 0.06);
+  transform: translateY(-1px);
+}
+
+.chart-option.selected {
+  border-color: rgba(52, 109, 146, 0.55);
+  background: rgba(52, 109, 146, 0.07);
+  box-shadow: 0 4px 14px rgba(52, 109, 146, 0.08);
+}
+
+.chart-option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Chart icon */
+.chart-option-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: #f1f5f7;
+  color: #346d92;
+  font-size: 13px;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.chart-option:hover .chart-option-icon {
+  background: rgba(52, 109, 146, 0.1);
+}
+
+.chart-option.selected .chart-option-icon {
+  background: #346d92;
+  color: #ffffff;
+  transform: scale(1.03);
+}
+
+/* Chart name */
+.chart-option-name {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  color: #344b5a;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chart-option.selected .chart-option-name {
+  color: #274f69;
+}
+
+/* Selected check */
+.chart-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 17px;
+  width: 17px;
+  height: 17px;
+  border: 1px solid rgba(52, 109, 146, 0.2);
+  border-radius: 5px;
+  background: #ffffff;
+  color: #ffffff;
+  font-size: 9px;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.chart-option.selected .chart-check {
+  border-color: #346d92;
+  background: #346d92;
+}
+
+/* Dark chart options */
+body.dark .chart-option,
+.app-container.dark .chart-option {
+  border-color: rgba(255, 255, 255, 0.09);
+  background: #17242d;
+}
+
+body.dark .chart-option:hover,
+.app-container.dark .chart-option:hover {
+  border-color: rgba(37, 163, 218, 0.35);
+  background: rgba(37, 163, 218, 0.06);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+
+body.dark .chart-option.selected,
+.app-container.dark .chart-option.selected {
+  border-color: rgba(37, 163, 218, 0.5);
+  background: rgba(37, 163, 218, 0.09);
+}
+
+body.dark .chart-option-icon,
+.app-container.dark .chart-option-icon {
+  background: #21333e;
+  color: #25a3da;
+}
+
+body.dark .chart-option:hover .chart-option-icon,
+.app-container.dark .chart-option:hover .chart-option-icon {
+  background: rgba(37, 163, 218, 0.12);
+}
+
+body.dark .chart-option.selected .chart-option-icon,
+.app-container.dark .chart-option.selected .chart-option-icon {
+  background: #25a3da;
+  color: #10202a;
+}
+
+body.dark .chart-option-name,
+.app-container.dark .chart-option-name {
+  color: #c5d1d8;
+}
+
+body.dark .chart-option.selected .chart-option-name,
+.app-container.dark .chart-option.selected .chart-option-name {
+  color: #e8f3f8;
+}
+
+body.dark .chart-check,
+.app-container.dark .chart-check {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: #21313a;
+}
+
+body.dark .chart-option.selected .chart-check,
+.app-container.dark .chart-option.selected .chart-check {
+  border-color: #25a3da;
+  background: #25a3da;
+  color: #10202a;
+}
+
+/* Keyboard accessibility */
+.chart-option:focus-within {
+  outline: 2px solid rgba(52, 109, 146, 0.35);
+  outline-offset: 2px;
+}
+
+.select-all-button:focus-visible {
+  outline: 2px solid rgba(52, 109, 146, 0.35);
+  outline-offset: 2px;
+}
+
+/* Responsive chart selector */
+@media (max-width: 560px) {
+  .chart-options-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .chart-option {
+    min-height: 46px;
+  }
+
+  .chart-options-hint {
+    font-size: 11px;
   }
 }
