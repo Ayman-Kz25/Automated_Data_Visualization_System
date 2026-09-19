@@ -1,43 +1,166 @@
-import React, { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 
-function ColumnSelector({ columns, xCol, yCol, setXCol, setYCol }) {
-  // Auto-select first columns if none chosen
-  useEffect(() => {
-    if (columns && columns.length > 0) {
-      if (!xCol) setXCol(columns[0]);
-      if (!yCol && columns.length > 1) setYCol(columns[1]);
+function ColumnSelector({
+  columns,
+  xCol,
+  yCol,
+  setXCol,
+  setYCol,
+}) {
+  /* =========================================================
+     NORMALIZE COLUMNS
+     ========================================================= */
+
+  const availableColumns = useMemo(() => {
+    if (!Array.isArray(columns)) {
+      return [];
     }
-  }, [columns, xCol, yCol, setXCol, setYCol]);
 
-  if (!Array.isArray(columns) || columns.length === 0) {
-    return <p>No columns detected. Please upload a valid file.</p>;
+    return columns.filter(
+      (column) =>
+        typeof column === "string" &&
+        column.trim().length > 0
+    );
+  }, [columns]);
+
+  /* =========================================================
+     AUTO SELECT DEFAULT COLUMNS
+     ========================================================= */
+
+  useEffect(() => {
+    if (availableColumns.length === 0) {
+      return;
+    }
+
+    const xExists = availableColumns.includes(xCol);
+    const yExists = availableColumns.includes(yCol);
+
+    /*
+     * If the current X column no longer exists,
+     * select the first available column.
+     */
+    if (!xExists) {
+      setXCol(availableColumns[0]);
+    }
+
+    /*
+     * If the current Y column no longer exists,
+     * select the second available column when possible.
+     */
+    if (!yExists) {
+      setYCol(
+        availableColumns.length > 1
+          ? availableColumns[1]
+          : availableColumns[0]
+      );
+    }
+  }, [
+    availableColumns,
+    xCol,
+    yCol,
+    setXCol,
+    setYCol,
+  ]);
+
+  /* =========================================================
+     EMPTY STATE
+     ========================================================= */
+
+  if (availableColumns.length === 0) {
+    return (
+      <div className="column-selector-empty">
+        <i className="fa-solid fa-table-columns"></i>
+
+        <div>
+          <strong>No columns detected</strong>
+
+          <p>
+            Please upload a valid CSV or Excel file.
+          </p>
+        </div>
+      </div>
+    );
   }
+
+  /* =========================================================
+     SELECTED VALUES
+     ========================================================= */
+
+  const selectedX = availableColumns.includes(xCol)
+    ? xCol
+    : availableColumns[0];
+
+  const selectedY = availableColumns.includes(yCol)
+    ? yCol
+    : availableColumns.length > 1
+      ? availableColumns[1]
+      : availableColumns[0];
+
+  /* =========================================================
+     RENDER
+     ========================================================= */
 
   return (
     <div className="column-selector">
-      <div>
-        <label>X-Axis:</label>
+      {/* =====================================================
+          X AXIS
+          ===================================================== */}
+
+      <div className="column-selector-field">
+        <label htmlFor="x-column">
+          <span className="column-selector-label">
+            X-Axis
+          </span>
+
+          <span className="column-selector-hint">
+            Category / independent variable
+          </span>
+        </label>
+
         <select
-          value={xCol || ""}
-          onChange={(e) => setXCol(e.target.value)}
+          id="x-column"
+          name="x-column"
+          value={selectedX}
+          onChange={(event) =>
+            setXCol(event.target.value)
+          }
+          aria-label="Select X-Axis column"
         >
-          {columns.map((col) => (
-            <option key={col} value={col}>
-              {col}
+          {availableColumns.map((column) => (
+            <option key={`x-${column}`} value={column}>
+              {column}
             </option>
           ))}
         </select>
       </div>
 
-      <div>
-        <label>Y-Axis:</label>
+      {/* =====================================================
+          Y AXIS
+          ===================================================== */}
+
+      <div className="column-selector-field">
+        <label htmlFor="y-column">
+          <span className="column-selector-label">
+            Y-Axis
+          </span>
+
+          <span className="column-selector-hint">
+            Numeric / dependent variable
+          </span>
+        </label>
+
         <select
-          value={yCol || ""}
-          onChange={(e) => setYCol(e.target.value)}
+          id="y-column"
+          name="y-column"
+          value={selectedY}
+          onChange={(event) =>
+            setYCol(event.target.value)
+          }
+          aria-label="Select Y-Axis column"
         >
-          {columns.map((col) => (
-            <option key={col} value={col}>
-              {col}
+          {availableColumns.map((column) => (
+            <option key={`y-${column}`} value={column}>
+              {column}
             </option>
           ))}
         </select>

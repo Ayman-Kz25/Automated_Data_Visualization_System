@@ -1,68 +1,79 @@
-import { useMemo } from "react";
-
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  ScatterChart,
-  Scatter,
-  AreaChart,
-  Area,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  RadarChart,
-  Radar,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Treemap,
-  FunnelChart,
-  Funnel,
-} from "recharts";
+import ReactECharts from "echarts-for-react";
 
 import { detectColumnTypes, suggestCharts } from "../Utils/DataUtils";
 import TreeChart from "./TreeChart";
 
-const CHART_COLORS = [
+/* =========================================================
+   CHART PALETTE
+   ========================================================= */
+
+const COLORS = [
   "#6C63FF",
+  "#FF6B6B",
   "#4ECDC4",
-  "#FF8B5C",
   "#45B7D1",
-  "#20B486",
-  "#F4A62A",
-  "#E85D75",
-  "#9B8AFB",
-  "#7CC8C2",
+  "#96CEB4",
+  "#F7C948",
   "#DDA0DD",
+  "#FF9F43",
+  "#5DADE2",
+  "#58D68D",
+  "#AF7AC5",
+  "#F1948A",
 ];
 
-const GRID_COLOR = "#e5e8ef";
-const AXIS_COLOR = "#8a93a5";
-const TOOLTIP_BACKGROUND = "#ffffff";
+/* =========================================================
+   HELPERS
+   ========================================================= */
 
-const CHART_LABELS = {
-  line: "Line",
-  bar: "Bar",
-  scatter: "Scatter",
-  area: "Area",
-  pie: "Pie",
-  radar: "Radar",
-  treemap: "Treemap",
-  funnel: "Funnel",
-  tree: "Tree",
+const isDarkMode = () =>
+  document.body.classList.contains("dark") ||
+  document.documentElement.classList.contains("dark");
+
+const getThemeColors = () => {
+  const dark = isDarkMode();
+
+  return {
+    text: dark ? "#F2F4F8" : "#172033",
+    secondaryText: dark ? "#AEB6C6" : "#5F687A",
+    mutedText: dark ? "#818A9C" : "#8A93A5",
+    border: dark ? "#2B3240" : "#E5E8EF",
+    grid: dark ? "#2B3240" : "#E9ECF2",
+    background: dark ? "#191E29" : "#FFFFFF",
+    tooltipBackground: dark ? "#202633" : "#FFFFFF",
+  };
 };
 
-const formatChartValue = (value) => {
+/* =========================================================
+   VALUE CONVERSION
+   ========================================================= */
+
+const toNumber = (value) => {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : null;
+  }
+
   if (value === null || value === undefined || value === "") {
-    return "—";
+    return null;
+  }
+
+  const normalized = String(value)
+    .replace(/,/g, "")
+    .replace(/[$€£¥%]/g, "")
+    .trim();
+
+  const number = Number(normalized);
+
+  return Number.isFinite(number) ? number : null;
+};
+
+/* =========================================================
+   FORMATTERS
+   ========================================================= */
+
+const formatValue = (value) => {
+  if (value === null || value === undefined) {
+    return "N/A";
   }
 
   if (typeof value === "number") {
@@ -74,60 +85,802 @@ const formatChartValue = (value) => {
   return String(value);
 };
 
-const getNumericValue = (value) => {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
+/* =========================================================
+   CHART OPTION FACTORY
+   ========================================================= */
+
+function buildChartOption({ type, data, xCol, yCol, colors }) {
+  const theme = getThemeColors();
+
+  const categories = data.map((item) => item[xCol]);
+  const values = data.map((item) => toNumber(item[yCol]));
+
+  /* =======================================================
+     COMMON
+     ======================================================= */
+
+  const common = {
+    animation: true,
+    animationDuration: 650,
+    animationEasing: "cubicOut",
+
+    backgroundColor: "transparent",
+
+    textStyle: {
+      fontFamily:
+        'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      color: theme.text,
+    },
+
+    tooltip: {
+      trigger: "axis",
+      confine: true,
+      backgroundColor: theme.tooltipBackground,
+      borderColor: theme.border,
+      borderWidth: 1,
+
+      textStyle: {
+        color: theme.text,
+        fontSize: 12,
+      },
+
+      extraCssText:
+        "box-shadow: 0 10px 30px rgba(0,0,0,0.12); border-radius: 10px;",
+    },
+
+    grid: {
+      top: 45,
+      right: 25,
+      bottom: 65,
+      left: 65,
+      containLabel: true,
+    },
+
+    legend: {
+      show: false,
+
+      textStyle: {
+        color: theme.secondaryText,
+      },
+    },
+  };
+
+  /* =======================================================
+     LINE
+     ======================================================= */
+
+  if (type === "line") {
+    return {
+      ...common,
+
+      tooltip: {
+        ...common.tooltip,
+        trigger: "axis",
+      },
+
+      dataZoom: [
+        {
+          type: "inside",
+          start: 0,
+          end: 100,
+        },
+        {
+          type: "slider",
+          height: 18,
+          bottom: 10,
+          borderColor: "transparent",
+          backgroundColor: theme.border,
+          fillerColor: "rgba(108, 99, 255, 0.2)",
+
+          handleStyle: {
+            color: colors[0],
+          },
+        },
+      ],
+
+      xAxis: {
+        type: "category",
+        data: categories,
+        boundaryGap: false,
+
+        axisLine: {
+          lineStyle: {
+            color: theme.border,
+          },
+        },
+
+        axisLabel: {
+          color: theme.mutedText,
+          fontSize: 10,
+        },
+      },
+
+      yAxis: {
+        type: "value",
+
+        splitLine: {
+          lineStyle: {
+            color: theme.grid,
+            type: "dashed",
+          },
+        },
+
+        axisLabel: {
+          color: theme.mutedText,
+          fontSize: 10,
+        },
+      },
+
+      series: [
+        {
+          name: yCol,
+          type: "line",
+          data: values,
+          smooth: true,
+          symbol: "circle",
+          symbolSize: 7,
+
+          lineStyle: {
+            width: 3,
+            color: colors[0],
+          },
+
+          itemStyle: {
+            color: colors[0],
+            borderColor: theme.background,
+            borderWidth: 2,
+          },
+
+          areaStyle: {
+            color: {
+              type: "linear",
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+
+              colorStops: [
+                {
+                  offset: 0,
+                  color: "rgba(108,99,255,0.25)",
+                },
+                {
+                  offset: 1,
+                  color: "rgba(108,99,255,0.01)",
+                },
+              ],
+            },
+          },
+
+          emphasis: {
+            focus: "series",
+          },
+        },
+      ],
+    };
   }
 
-  if (typeof value === "string" && value.trim() !== "") {
-    const parsed = Number(value.replace(/,/g, ""));
+  /* =======================================================
+     BAR
+     ======================================================= */
 
-    if (Number.isFinite(parsed)) {
-      return parsed;
-    }
+  if (type === "bar") {
+    return {
+      ...common,
+
+      tooltip: {
+        ...common.tooltip,
+        trigger: "axis",
+      },
+
+      dataZoom: [
+        {
+          type: "inside",
+          start: 0,
+          end: 100,
+        },
+        {
+          type: "slider",
+          height: 18,
+          bottom: 10,
+          borderColor: "transparent",
+          backgroundColor: theme.border,
+          fillerColor: "rgba(108, 99, 255, 0.2)",
+
+          handleStyle: {
+            color: colors[0],
+          },
+        },
+      ],
+
+      xAxis: {
+        type: "category",
+        data: categories,
+
+        axisLine: {
+          lineStyle: {
+            color: theme.border,
+          },
+        },
+
+        axisLabel: {
+          color: theme.mutedText,
+          fontSize: 10,
+          rotate: categories.length > 12 ? 35 : 0,
+        },
+      },
+
+      yAxis: {
+        type: "value",
+
+        splitLine: {
+          lineStyle: {
+            color: theme.grid,
+            type: "dashed",
+          },
+        },
+
+        axisLabel: {
+          color: theme.mutedText,
+          fontSize: 10,
+        },
+      },
+
+      series: [
+        {
+          name: yCol,
+          type: "bar",
+          data: values,
+          barMaxWidth: 42,
+
+          itemStyle: {
+            color: (params) =>
+              colors[params.dataIndex % colors.length],
+
+            borderRadius: [7, 7, 0, 0],
+          },
+
+          emphasis: {
+            focus: "series",
+
+            itemStyle: {
+              shadowBlur: 12,
+              shadowColor: "rgba(0,0,0,0.15)",
+            },
+          },
+        },
+      ],
+    };
   }
 
-  return null;
-};
+  /* =======================================================
+     SCATTER
+     ======================================================= */
 
-const getChartData = (data, xCol, yCol) => {
-  return data
-    .map((row) => ({
-      ...row,
-      __x: row?.[xCol],
-      __y: getNumericValue(row?.[yCol]),
-    }))
-    .filter((row) => row.__x !== undefined && row.__y !== null);
-};
+  if (type === "scatter") {
+    const scatterData = data
+      .map((item) => [
+        toNumber(item[xCol]),
+        toNumber(item[yCol]),
+      ])
+      .filter(
+        (item) => item[0] !== null && item[1] !== null
+      );
 
-const truncateLabel = (value, maxLength = 18) => {
-  const text = String(value ?? "");
+    return {
+      ...common,
 
-  if (text.length <= maxLength) {
-    return text;
+      tooltip: {
+        ...common.tooltip,
+        trigger: "item",
+
+        formatter: (params) => {
+          const value = params.value || [];
+
+          return `
+            <div>
+              <strong>${xCol}</strong>: ${formatValue(value[0])}<br/>
+              <strong>${yCol}</strong>: ${formatValue(value[1])}
+            </div>
+          `;
+        },
+      },
+
+      xAxis: {
+        type: "value",
+        name: xCol,
+
+        nameTextStyle: {
+          color: theme.secondaryText,
+        },
+
+        splitLine: {
+          lineStyle: {
+            color: theme.grid,
+            type: "dashed",
+          },
+        },
+
+        axisLabel: {
+          color: theme.mutedText,
+          fontSize: 10,
+        },
+      },
+
+      yAxis: {
+        type: "value",
+        name: yCol,
+
+        nameTextStyle: {
+          color: theme.secondaryText,
+        },
+
+        splitLine: {
+          lineStyle: {
+            color: theme.grid,
+            type: "dashed",
+          },
+        },
+
+        axisLabel: {
+          color: theme.mutedText,
+          fontSize: 10,
+        },
+      },
+
+      series: [
+        {
+          name: `${xCol} vs ${yCol}`,
+          type: "scatter",
+          data: scatterData,
+          symbolSize: 11,
+
+          itemStyle: {
+            color: colors[0],
+            opacity: 0.75,
+          },
+
+          emphasis: {
+            itemStyle: {
+              opacity: 1,
+              shadowBlur: 12,
+              shadowColor: "rgba(0,0,0,0.2)",
+            },
+          },
+        },
+      ],
+    };
   }
 
-  return `${text.slice(0, maxLength - 1)}…`;
-};
+  /* =======================================================
+     AREA
+     ======================================================= */
 
-const ChartTooltip = () => (
-  <Tooltip
-    cursor={{ stroke: AXIS_COLOR, strokeDasharray: "4 4" }}
-    contentStyle={{
-      background: TOOLTIP_BACKGROUND,
-      border: `1px solid ${GRID_COLOR}`,
-      borderRadius: "10px",
-      boxShadow: "0 8px 24px rgba(20, 25, 40, 0.08)",
-      fontSize: "12px",
-    }}
-    labelStyle={{
-      color: "#172033",
-      fontWeight: 700,
-      marginBottom: 4,
-    }}
-    formatter={(value) => formatChartValue(value)}
-  />
-);
+  if (type === "area") {
+    return {
+      ...common,
+
+      tooltip: {
+        ...common.tooltip,
+        trigger: "axis",
+      },
+
+      dataZoom: [
+        {
+          type: "inside",
+        },
+        {
+          type: "slider",
+          height: 18,
+          bottom: 10,
+          borderColor: "transparent",
+          backgroundColor: theme.border,
+          fillerColor: "rgba(221,160,221,0.25)",
+        },
+      ],
+
+      xAxis: {
+        type: "category",
+        data: categories,
+        boundaryGap: false,
+
+        axisLine: {
+          lineStyle: {
+            color: theme.border,
+          },
+        },
+
+        axisLabel: {
+          color: theme.mutedText,
+          fontSize: 10,
+        },
+      },
+
+      yAxis: {
+        type: "value",
+
+        splitLine: {
+          lineStyle: {
+            color: theme.grid,
+            type: "dashed",
+          },
+        },
+
+        axisLabel: {
+          color: theme.mutedText,
+          fontSize: 10,
+        },
+      },
+
+      series: [
+        {
+          name: yCol,
+          type: "line",
+          data: values,
+          smooth: true,
+          symbol: "none",
+
+          lineStyle: {
+            width: 2,
+            color: colors[5],
+          },
+
+          areaStyle: {
+            color: {
+              type: "linear",
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+
+              colorStops: [
+                {
+                  offset: 0,
+                  color: "rgba(221,160,221,0.55)",
+                },
+                {
+                  offset: 1,
+                  color: "rgba(221,160,221,0.04)",
+                },
+              ],
+            },
+          },
+        },
+      ],
+    };
+  }
+
+  /* =======================================================
+     PIE / DONUT
+     ======================================================= */
+
+  if (type === "pie") {
+    const pieData = data
+      .map((item, index) => ({
+        name: item[xCol],
+        value: toNumber(item[yCol]),
+
+        itemStyle: {
+          color: colors[index % colors.length],
+        },
+      }))
+      .filter((item) => item.value !== null);
+
+    return {
+      ...common,
+
+      tooltip: {
+        ...common.tooltip,
+        trigger: "item",
+        formatter: "{b}<br/>{c} ({d}%)",
+      },
+
+      legend: {
+        show: true,
+        type: "scroll",
+        bottom: 0,
+        left: "center",
+
+        textStyle: {
+          color: theme.secondaryText,
+          fontSize: 10,
+        },
+      },
+
+      series: [
+        {
+          name: yCol,
+          type: "pie",
+          radius: ["42%", "72%"],
+          center: ["50%", "45%"],
+          avoidLabelOverlap: true,
+
+          itemStyle: {
+            borderColor: theme.background,
+            borderWidth: 3,
+            borderRadius: 7,
+          },
+
+          label: {
+            color: theme.text,
+            fontSize: 10,
+            formatter: "{b}\n{d}%",
+          },
+
+          labelLine: {
+            lineStyle: {
+              color: theme.mutedText,
+            },
+          },
+
+          emphasis: {
+            scale: true,
+            scaleSize: 8,
+
+            itemStyle: {
+              shadowBlur: 15,
+              shadowColor: "rgba(0,0,0,0.18)",
+            },
+          },
+
+          data: pieData,
+        },
+      ],
+    };
+  }
+
+  /* =======================================================
+     RADAR
+     ======================================================= */
+
+  if (type === "radar") {
+    const numericValues = values.map((value) =>
+      value === null ? 0 : value
+    );
+
+    const maxValue = Math.max(...numericValues, 1);
+
+    return {
+      ...common,
+
+      tooltip: {
+        ...common.tooltip,
+        trigger: "item",
+      },
+
+      radar: {
+        radius: "65%",
+
+        indicator: data.map((item) => ({
+          name: String(item[xCol]),
+          max: maxValue,
+        })),
+
+        axisName: {
+          color: theme.secondaryText,
+          fontSize: 10,
+        },
+
+        splitLine: {
+          lineStyle: {
+            color: theme.grid,
+          },
+        },
+
+        splitArea: {
+          areaStyle: {
+            color: [
+              "rgba(108,99,255,0.02)",
+              "rgba(108,99,255,0.05)",
+            ],
+          },
+        },
+
+        axisLine: {
+          lineStyle: {
+            color: theme.border,
+          },
+        },
+      },
+
+      series: [
+        {
+          type: "radar",
+
+          data: [
+            {
+              name: yCol,
+              value: numericValues,
+
+              lineStyle: {
+                color: colors[1],
+                width: 2,
+              },
+
+              itemStyle: {
+                color: colors[1],
+              },
+
+              areaStyle: {
+                color: "rgba(255,107,107,0.25)",
+              },
+
+              symbol: "circle",
+              symbolSize: 6,
+            },
+          ],
+        },
+      ],
+    };
+  }
+
+  /* =======================================================
+     TREEMAP
+     ======================================================= */
+
+  if (type === "treemap") {
+    const treeData = data
+      .map((item, index) => ({
+        name: String(item[xCol]),
+        value: toNumber(item[yCol]) || 0,
+
+        itemStyle: {
+          color: colors[index % colors.length],
+        },
+      }))
+      .filter((item) => item.value > 0);
+
+    return {
+      ...common,
+
+      tooltip: {
+        ...common.tooltip,
+        trigger: "item",
+
+        formatter: (params) => `
+          <strong>${params.name}</strong><br/>
+          ${yCol}: ${formatValue(params.value)}
+        `,
+      },
+
+      series: [
+        {
+          type: "treemap",
+          data: treeData,
+          roam: true,
+          nodeClick: "zoomToNode",
+
+          breadcrumb: {
+            show: true,
+            bottom: 5,
+            height: 22,
+
+            itemStyle: {
+              color: theme.background,
+              borderColor: theme.border,
+
+              textStyle: {
+                color: theme.secondaryText,
+              },
+            },
+          },
+
+          label: {
+            show: true,
+            color: "#fff",
+            fontSize: 11,
+            fontWeight: 600,
+          },
+
+          upperLabel: {
+            show: false,
+          },
+
+          itemStyle: {
+            borderColor: theme.background,
+            borderWidth: 3,
+            gapWidth: 3,
+            borderRadius: 5,
+          },
+
+          levels: [
+            {
+              itemStyle: {
+                borderColor: theme.background,
+                borderWidth: 4,
+                gapWidth: 4,
+              },
+            },
+          ],
+        },
+      ],
+    };
+  }
+
+  /* =======================================================
+     FUNNEL
+     ======================================================= */
+
+  if (type === "funnel") {
+    const funnelData = data
+      .map((item, index) => ({
+        name: String(item[xCol]),
+        value: toNumber(item[yCol]) || 0,
+
+        itemStyle: {
+          color: colors[index % colors.length],
+        },
+      }))
+      .filter((item) => item.value > 0);
+
+    return {
+      ...common,
+
+      tooltip: {
+        ...common.tooltip,
+        trigger: "item",
+
+        formatter: (params) => `
+          <strong>${params.name}</strong><br/>
+          ${yCol}: ${formatValue(params.value)}
+        `,
+      },
+
+      series: [
+        {
+          name: yCol,
+          type: "funnel",
+
+          left: "10%",
+          top: 20,
+          bottom: 30,
+          width: "80%",
+          min: 0,
+
+          sort: "descending",
+          gap: 5,
+
+          label: {
+            show: true,
+            position: "inside",
+            color: "#fff",
+            fontSize: 11,
+            fontWeight: 650,
+          },
+
+          labelLine: {
+            show: false,
+          },
+
+          itemStyle: {
+            borderColor: theme.background,
+            borderWidth: 2,
+            borderRadius: 4,
+          },
+
+          emphasis: {
+            label: {
+              fontSize: 13,
+            },
+
+            itemStyle: {
+              shadowBlur: 15,
+              shadowColor: "rgba(0,0,0,0.18)",
+            },
+          },
+
+          data: funnelData,
+        },
+      ],
+    };
+  }
+
+  return {};
+}
+
+/* =========================================================
+   MAIN COMPONENT
+   ========================================================= */
 
 function ChartRenderer({
   data,
@@ -136,50 +889,15 @@ function ChartRenderer({
   chartType,
   treeLayout,
 }) {
-  const types = useMemo(
-    () => (data?.length ? detectColumnTypes(data) : {}),
-    [data]
-  );
-
-  const suggestions = useMemo(() => {
-    if (!xCol || !yCol || !types[xCol] || !types[yCol]) {
-      return [];
-    }
-
-    return suggestCharts(types[xCol], types[yCol]);
-  }, [types, xCol, yCol]);
-
-  const chartsToRender = useMemo(() => {
-    if (Array.isArray(chartType) && chartType.length > 0) {
-      return chartType;
-    }
-
-    return suggestions;
-  }, [chartType, suggestions]);
-
-  const chartData = useMemo(
-    () => getChartData(data || [], xCol, yCol),
-    [data, xCol, yCol]
-  );
-
-  const isNumericY = useMemo(
-    () =>
-      chartData.some((row) => row.__y !== null) &&
-      chartData.length > 0,
-    [chartData]
-  );
-
-  const chartHeight = {
-    desktop: 360,
-    mobile: 280,
-  };
+  /* =======================================================
+     VALIDATION
+     ======================================================= */
 
   if (!data || data.length === 0) {
     return (
       <div className="chart-empty-state">
-        <i className="fa-solid fa-chart-simple" />
-        <strong>No data available</strong>
-        <span>Upload a dataset to generate visualizations.</span>
+        <i className="fa-solid fa-chart-simple"></i>
+        <p>No data to render</p>
       </div>
     );
   }
@@ -187,603 +905,140 @@ function ChartRenderer({
   if (!xCol || !yCol) {
     return (
       <div className="chart-empty-state">
-        <i className="fa-solid fa-table-columns" />
-        <strong>Select your columns</strong>
-        <span>Choose an X and Y column to generate a chart.</span>
+        <i className="fa-solid fa-columns"></i>
+        <p>Please select X and Y columns</p>
       </div>
     );
   }
+
+  const types = detectColumnTypes(data);
 
   if (!types[xCol] || !types[yCol]) {
-    return (
-      <div className="chart-empty-state">
-        <i className="fa-solid fa-triangle-exclamation" />
-        <strong>Column information unavailable</strong>
-        <span>
-          The selected columns could not be analyzed for visualization.
-        </span>
-      </div>
-    );
+    return null;
   }
 
-  if (chartsToRender.length === 0) {
-    return (
-      <div className="chart-empty-state">
-        <i className="fa-solid fa-wand-magic-sparkles" />
-        <strong>No chart suggestion available</strong>
-        <span>Try selecting different columns.</span>
-      </div>
-    );
-  }
+  /* =======================================================
+     AUTOMATIC CHART SUGGESTIONS
+     ======================================================= */
 
-  const renderCartesianChart = (chart) => (
-    <ResponsiveContainer
-      width="100%"
-      height="100%"
-      minWidth={0}
-      minHeight={chartHeight.desktop}
-    >
-      {chart}
-    </ResponsiveContainer>
+  const suggestions = suggestCharts(
+    types[xCol],
+    types[yCol]
   );
 
-  const renderChart = (type) => {
-    switch (type) {
-      case "line":
-        if (!isNumericY) {
-          return (
-            <div className="chart-message">
-              Line charts require numeric Y-axis values.
-            </div>
-          );
-        }
+  const chartsToRender =
+    Array.isArray(chartType) && chartType.length > 0
+      ? chartType
+      : suggestions;
 
-        return renderCartesianChart(
-          <LineChart
-            data={chartData}
-            margin={{ top: 12, right: 16, left: 4, bottom: 8 }}
-          >
-            <CartesianGrid
-              stroke={GRID_COLOR}
-              strokeDasharray="3 3"
-              vertical={false}
-            />
+  /* =======================================================
+     THEME
+     ======================================================= */
 
-            <XAxis
-              dataKey="__x"
-              tick={{ fill: AXIS_COLOR, fontSize: 10 }}
-              tickLine={false}
-              axisLine={{ stroke: GRID_COLOR }}
-              tickFormatter={(value) => truncateLabel(value, 14)}
-            />
+  const themeKey = isDarkMode() ? "dark" : "light";
 
-            <YAxis
-              tick={{ fill: AXIS_COLOR, fontSize: 10 }}
-              tickLine={false}
-              axisLine={false}
-              width={45}
-              tickFormatter={formatChartValue}
-            />
-
-            <ChartTooltip />
-
-            <Legend
-              wrapperStyle={{
-                fontSize: "10px",
-                paddingTop: "8px",
-              }}
-            />
-
-            <Line
-              type="monotone"
-              dataKey="__y"
-              name={yCol}
-              stroke={CHART_COLORS[0]}
-              strokeWidth={3}
-              dot={{
-                r: 3,
-                fill: CHART_COLORS[0],
-                strokeWidth: 0,
-              }}
-              activeDot={{
-                r: 6,
-                strokeWidth: 2,
-              }}
-              isAnimationActive
-            />
-          </LineChart>
-        );
-
-      case "bar":
-        if (!isNumericY) {
-          return (
-            <div className="chart-message">
-              Bar charts require numeric Y-axis values.
-            </div>
-          );
-        }
-
-        return renderCartesianChart(
-          <BarChart
-            data={chartData}
-            margin={{ top: 12, right: 16, left: 4, bottom: 8 }}
-          >
-            <CartesianGrid
-              stroke={GRID_COLOR}
-              strokeDasharray="3 3"
-              vertical={false}
-            />
-
-            <XAxis
-              dataKey="__x"
-              tick={{ fill: AXIS_COLOR, fontSize: 10 }}
-              tickLine={false}
-              axisLine={{ stroke: GRID_COLOR }}
-              tickFormatter={(value) => truncateLabel(value, 12)}
-            />
-
-            <YAxis
-              tick={{ fill: AXIS_COLOR, fontSize: 10 }}
-              tickLine={false}
-              axisLine={false}
-              width={45}
-              tickFormatter={formatChartValue}
-            />
-
-            <ChartTooltip />
-
-            <Legend
-              wrapperStyle={{
-                fontSize: "10px",
-                paddingTop: "8px",
-              }}
-            />
-
-            <Bar
-              dataKey="__y"
-              name={yCol}
-              radius={[6, 6, 0, 0]}
-              maxBarSize={52}
-              isAnimationActive
-            >
-              {chartData.map((entry, index) => (
-                <Cell
-                  key={`bar-${entry.__x}-${index}`}
-                  fill={CHART_COLORS[index % CHART_COLORS.length]}
-                />
-              ))}
-            </Bar>
-          </BarChart>
-        );
-
-      case "scatter":
-        if (!isNumericY) {
-          return (
-            <div className="chart-message">
-              Scatter charts require numeric Y-axis values.
-            </div>
-          );
-        }
-
-        return renderCartesianChart(
-          <ScatterChart
-            margin={{ top: 12, right: 16, left: 4, bottom: 8 }}
-          >
-            <CartesianGrid
-              stroke={GRID_COLOR}
-              strokeDasharray="3 3"
-            />
-
-            <XAxis
-              type="category"
-              dataKey="__x"
-              tick={{ fill: AXIS_COLOR, fontSize: 10 }}
-              tickLine={false}
-              axisLine={{ stroke: GRID_COLOR }}
-              tickFormatter={(value) => truncateLabel(value, 12)}
-            />
-
-            <YAxis
-              type="number"
-              dataKey="__y"
-              tick={{ fill: AXIS_COLOR, fontSize: 10 }}
-              tickLine={false}
-              axisLine={false}
-              width={45}
-              tickFormatter={formatChartValue}
-            />
-
-            <ChartTooltip />
-
-            <Legend
-              wrapperStyle={{
-                fontSize: "10px",
-                paddingTop: "8px",
-              }}
-            />
-
-            <Scatter
-              name={yCol}
-              data={chartData}
-              fill={CHART_COLORS[2]}
-              isAnimationActive
-            >
-              {chartData.map((entry, index) => (
-                <Cell
-                  key={`scatter-${entry.__x}-${index}`}
-                  fill={CHART_COLORS[index % CHART_COLORS.length]}
-                />
-              ))}
-            </Scatter>
-          </ScatterChart>
-        );
-
-      case "area":
-        if (!isNumericY) {
-          return (
-            <div className="chart-message">
-              Area charts require numeric Y-axis values.
-            </div>
-          );
-        }
-
-        return renderCartesianChart(
-          <AreaChart
-            data={chartData}
-            margin={{ top: 12, right: 16, left: 4, bottom: 8 }}
-          >
-            <defs>
-              <linearGradient
-                id="dataviz-area-gradient"
-                x1="0"
-                y1="0"
-                x2="0"
-                y2="1"
-              >
-                <stop
-                  offset="0%"
-                  stopColor={CHART_COLORS[0]}
-                  stopOpacity={0.35}
-                />
-                <stop
-                  offset="100%"
-                  stopColor={CHART_COLORS[0]}
-                  stopOpacity={0.03}
-                />
-              </linearGradient>
-            </defs>
-
-            <CartesianGrid
-              stroke={GRID_COLOR}
-              strokeDasharray="3 3"
-              vertical={false}
-            />
-
-            <XAxis
-              dataKey="__x"
-              tick={{ fill: AXIS_COLOR, fontSize: 10 }}
-              tickLine={false}
-              axisLine={{ stroke: GRID_COLOR }}
-              tickFormatter={(value) => truncateLabel(value, 14)}
-            />
-
-            <YAxis
-              tick={{ fill: AXIS_COLOR, fontSize: 10 }}
-              tickLine={false}
-              axisLine={false}
-              width={45}
-              tickFormatter={formatChartValue}
-            />
-
-            <ChartTooltip />
-
-            <Legend
-              wrapperStyle={{
-                fontSize: "10px",
-                paddingTop: "8px",
-              }}
-            />
-
-            <Area
-              type="monotone"
-              dataKey="__y"
-              name={yCol}
-              stroke={CHART_COLORS[0]}
-              strokeWidth={2.5}
-              fill="url(#dataviz-area-gradient)"
-              activeDot={{ r: 5 }}
-              isAnimationActive
-            />
-          </AreaChart>
-        );
-
-      case "pie":
-        if (!isNumericY) {
-          return (
-            <div className="chart-message">
-              Pie charts require numeric values.
-            </div>
-          );
-        }
-
-        return (
-          <ResponsiveContainer
-            width="100%"
-            height="100%"
-            minWidth={0}
-            minHeight={chartHeight.desktop}
-          >
-            <PieChart>
-              <Pie
-                data={chartData}
-                dataKey="__y"
-                nameKey="__x"
-                cx="50%"
-                cy="45%"
-                innerRadius="32%"
-                outerRadius="68%"
-                paddingAngle={2}
-                stroke="var(--surface)"
-                strokeWidth={2}
-                isAnimationActive
-              >
-                {chartData.map((entry, index) => (
-                  <Cell
-                    key={`pie-${entry.__x}-${index}`}
-                    fill={CHART_COLORS[index % CHART_COLORS.length]}
-                  />
-                ))}
-              </Pie>
-
-              <ChartTooltip />
-
-              <Legend
-                verticalAlign="bottom"
-                height={32}
-                wrapperStyle={{
-                  fontSize: "10px",
-                }}
-                formatter={(value) => truncateLabel(value, 18)}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        );
-
-      case "radar":
-        if (!isNumericY) {
-          return (
-            <div className="chart-message">
-              Radar charts require numeric values.
-            </div>
-          );
-        }
-
-        return (
-          <ResponsiveContainer
-            width="100%"
-            height="100%"
-            minWidth={0}
-            minHeight={chartHeight.desktop}
-          >
-            <RadarChart
-              data={chartData}
-              outerRadius="68%"
-            >
-              <PolarGrid stroke={GRID_COLOR} />
-
-              <PolarAngleAxis
-                dataKey="__x"
-                tick={{
-                  fill: AXIS_COLOR,
-                  fontSize: 10,
-                }}
-                tickFormatter={(value) => truncateLabel(value, 12)}
-              />
-
-              <PolarRadiusAxis
-                tick={{
-                  fill: AXIS_COLOR,
-                  fontSize: 9,
-                }}
-              />
-
-              <Radar
-                name={yCol}
-                dataKey="__y"
-                stroke={CHART_COLORS[2]}
-                fill={CHART_COLORS[2]}
-                fillOpacity={0.28}
-                strokeWidth={2}
-                isAnimationActive
-              />
-
-              <ChartTooltip />
-
-              <Legend
-                wrapperStyle={{
-                  fontSize: "10px",
-                }}
-              />
-            </RadarChart>
-          </ResponsiveContainer>
-        );
-
-      case "treemap":
-        if (!isNumericY) {
-          return (
-            <div className="chart-message">
-              Treemaps require numeric values.
-            </div>
-          );
-        }
-
-        return (
-          <ResponsiveContainer
-            width="100%"
-            height="100%"
-            minWidth={0}
-            minHeight={chartHeight.desktop}
-          >
-            <Treemap
-              data={chartData}
-              dataKey="__y"
-              nameKey="__x"
-              aspectRatio={4 / 3}
-              stroke="var(--surface)"
-              content={({
-                x,
-                y,
-                width,
-                height,
-                name,
-                value,
-                index,
-              }) => {
-                if (width <= 10 || height <= 10) {
-                  return null;
-                }
-
-                const showText = width > 65 && height > 35;
-
-                return (
-                  <g>
-                    <rect
-                      x={x}
-                      y={y}
-                      width={width}
-                      height={height}
-                      rx={8}
-                      ry={8}
-                      fill={
-                        CHART_COLORS[index % CHART_COLORS.length]
-                      }
-                      stroke="var(--surface)"
-                      strokeWidth={2}
-                    />
-
-                    {showText && (
-                      <>
-                        <text
-                          x={x + width / 2}
-                          y={y + height / 2 - 5}
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                          fill="#fff"
-                          fontSize={10}
-                          fontWeight={700}
-                        >
-                          {truncateLabel(name, 16)}
-                        </text>
-
-                        <text
-                          x={x + width / 2}
-                          y={y + height / 2 + 10}
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                          fill="rgba(255,255,255,0.8)"
-                          fontSize={8}
-                        >
-                          {formatChartValue(value)}
-                        </text>
-                      </>
-                    )}
-                  </g>
-                );
-              }}
-            />
-
-            <ChartTooltip />
-          </ResponsiveContainer>
-        );
-
-      case "funnel":
-        if (!isNumericY) {
-          return (
-            <div className="chart-message">
-              Funnel charts require numeric stage values.
-            </div>
-          );
-        }
-
-        return (
-          <ResponsiveContainer
-            width="100%"
-            height="100%"
-            minWidth={0}
-            minHeight={chartHeight.desktop}
-          >
-            <FunnelChart>
-              <Funnel
-                data={chartData}
-                dataKey="__y"
-                nameKey="__x"
-                isAnimationActive
-                fill={CHART_COLORS[0]}
-                stroke="var(--surface)"
-                strokeWidth={2}
-              >
-                {chartData.map((entry, index) => (
-                  <Cell
-                    key={`funnel-${entry.__x}-${index}`}
-                    fill={
-                      CHART_COLORS[index % CHART_COLORS.length]
-                    }
-                  />
-                ))}
-              </Funnel>
-
-              <ChartTooltip />
-            </FunnelChart>
-          </ResponsiveContainer>
-        );
-
-      case "tree":
-        return (
-          <div className="tree-chart-container">
-            <TreeChart
-              data={data}
-              layout={treeLayout || "vertical"}
-            />
-          </div>
-        );
-
-      default:
-        return (
-          <div className="chart-message">
-            Unknown chart type: {type}
-          </div>
-        );
-    }
-  };
+  /* =======================================================
+     RENDER
+     ======================================================= */
 
   return (
     <div className="charts">
-      {chartsToRender.map((type, index) => (
-        <article
-          key={`${type}-${index}`}
-          className={`chart-wrapper chart-${type}`}
-        >
-          <div className="chart-wrapper-header">
-            <div>
-              <span className="chart-wrapper-eyebrow">
-                Visualization
-              </span>
+      {chartsToRender.map((type, index) => {
+        /* ===================================================
+           TREE CHART
+           =================================================== */
 
-              <h2>
-                {CHART_LABELS[type] || type} Chart
-              </h2>
+        if (type === "tree") {
+          return (
+            <div
+              key={`tree-${index}`}
+              className="chart-wrapper"
+            >
+              <div className="chart-wrapper-header">
+                <div>
+                  <h2>Tree Chart</h2>
+
+                  <p>
+                    Hierarchical relationship visualization
+                  </p>
+                </div>
+
+                <span className="chart-type-badge">
+                  Tree
+                </span>
+              </div>
+
+              <div
+                className="chart-canvas tree-chart-canvas"
+                style={{
+                  width: "100%",
+                  height: 500,
+                }}
+              >
+                <TreeChart
+                  data={data}
+                  layout={treeLayout || "vertical"}
+                />
+              </div>
+            </div>
+          );
+        }
+
+        /* ===================================================
+           ECHARTS
+           =================================================== */
+
+        const option = buildChartOption({
+          type,
+          data,
+          xCol,
+          yCol,
+          colors: COLORS,
+        });
+
+        return (
+          <div
+            key={`${type}-${index}`}
+            className="chart-wrapper"
+          >
+            <div className="chart-wrapper-header">
+              <div>
+                <h2>
+                  {type.charAt(0).toUpperCase() +
+                    type.slice(1)}{" "}
+                  Chart
+                </h2>
+
+                <p>
+                  {xCol} vs {yCol}
+                </p>
+              </div>
+
+              <span className="chart-type-badge">
+                {type}
+              </span>
             </div>
 
-            <span className="chart-wrapper-type">
-              {type}
-            </span>
+            <div className="chart-canvas">
+              <ReactECharts
+                option={option}
+                notMerge={true}
+                lazyUpdate={true}
+                theme={themeKey}
+                opts={{
+                  renderer: "canvas",
+                  devicePixelRatio:
+                    window.devicePixelRatio || 1,
+                }}
+                style={{
+                  width: "100%",
+                  height: "350px",
+                }}
+              />
+            </div>
           </div>
-
-          <div className="chart-render-area">
-            {renderChart(type)}
-          </div>
-        </article>
-      ))}
+        );
+      })}
     </div>
   );
 }
