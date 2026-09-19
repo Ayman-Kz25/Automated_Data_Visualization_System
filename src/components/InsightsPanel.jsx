@@ -1,243 +1,786 @@
-import React, { useEffect, useState } from "react";
+import { useMemo } from "react";
 import * as d3 from "d3";
 
+function isMissing(value) {
+  return (
+    value === null ||
+    value === undefined ||
+    (typeof value === "string" && value.trim() === "")
+  );
+}
+
+function isNumeric(value) {
+  if (typeof value === "number") {
+    return Number.isFinite(value);
+  }
+
+  if (typeof value === "string" && value.trim() !== "") {
+    const cleaned = value.replace(/[$,%]/g, "").replace(/,/g, "");
+    return Number.isFinite(Number(cleaned));
+  }
+
+  return false;
+}
+
+function toNumber(value) {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : null;
+  }
+
+  if (typeof value === "string") {
+    const cleaned = value.replace(/[$,%]/g, "").replace(/,/g, "");
+    const number = Number(cleaned);
+
+    return Number.isFinite(number) ? number : null;
+  }
+
+  return null;
+}
+
+function formatNumber(value, digits = 2) {
+  if (!Number.isFinite(value)) return "-";
+
+  return new Intl.NumberFormat(undefined, {
+    maximumFractionDigits: digits,
+    minimumFractionDigits: digits,
+  }).format(value);
+}
+
 function correlation(x, y) {
+  if (x.length < 2 || y.length < 2 || x.length !== y.length) {
+    return 0;
+  }
+
   const meanX = d3.mean(x);
   const meanY = d3.mean(y);
 
-  const numerator = d3.sum(x.map((val, i) => (val - meanX) * (y[i] - meanY)));
+  if (!Number.isFinite(meanX) || !Number.isFinite(meanY)) {
+    return 0;
+  }
+
+  const numerator = d3.sum(
+    x.map((value, index) => {
+      return (value - meanX) * (y[index] - meanY);
+    })
+  );
+
   const denominator = Math.sqrt(
-    d3.sum(x.map((val) => Math.pow(val - meanX, 2))) *
-      d3.sum(y.map((val) => Math.pow(val - meanY, 2)))
+    d3.sum(x.map((value) => Math.pow(value - meanX, 2))) *
+      d3.sum(y.map((value) => Math.pow(value - meanY, 2)))
   );
 
   return denominator === 0 ? 0 : numerator / denominator;
 }
 
-// 🔹 Skewness helper
-function skewness(arr) {
-  const mean = d3.mean(arr);
-  const std = d3.deviation(arr);
-  const n = arr.length;
-  if (!std || std === 0) return 0;
+function skewness(values) {
+  if (values.length < 3) return 0;
+
+  const mean = d3.mean(values);
+  const deviation = d3.deviation(values);
+  const n = values.length;
+
+  if (!Number.isFinite(deviation) || deviation === 0) {
+    return 0;
+  }
+
   return (
     (n / ((n - 1) * (n - 2))) *
-    d3.sum(arr.map((val) => Math.pow((val - mean) / std, 3)))
+    d3.sum(
+      values.map((value) =>
+        Math.pow((value - mean) / deviation, 3)
+      )
+    )
+  );
+}
+
+function getTrend(values) {
+  if (values.length < 2) {
+    return null;
+  }
+
+  const xValues = values.map((_, index) => index);
+  const yValues = values.map((value) => value);
+
+  const meanX = d3.mean(xValues);
+  const meanY = d3.mean(yValues);
+
+  const denominator = d3.sum(
+    xValues.map((x) => Math.pow(x - meanX, 2))
+  );
+
+  if (denominator === 0) {
+    return null;
+  }
+
+  const slope =
+    d3.sum(
+      xValues.map(
+        (x, index) => (x - meanX) * (yValues[index] - meanY)
+      )
+    ) / denominator;
+
+  const intercept = meanY - slope * meanX;
+
+  const predicted = xValues.map((x) => intercept + slope * x);
+
+  const r = correlation(yValues, predicted);
+
+  return {
+    slope,
+    rSquared: r * r,
+  };
+}
+
+function isDateLike(value) {
+  if (value instanceof Date) {
+    return !Number.isNaN(value.getTime());
+  }
+
+  if (typeof value !== "string" || value.trim() === "") {
+    return false;
+  }
+
+  // Avoid treating plain numbers as dates.
+  if (/^-?\d+(?:\.\d+)?$/.test(value.trim())) {
+    return false;
+  }
+
+  const timestamp = Date.parse(value);
+
+  return !Number.isNaN(timestamp);
+}
+
+function getRelationshipLabel(corr) {
+  const absolute = Math.abs(corr);
+
+  if (absolute >= 0.9) {
+    return "very strong";
+  }
+
+  if (absolute >= 0.7) {
+    return "strong";
+  }
+
+  if (absolute >= 0.5) {
+    return "moderate";
+  }
+
+  if (absolute >= 0.3) {
+    return "weak";
+  }
+
+  return "very weak";
+}
+
+function InsightIcon({ icon }) {
+  return (
+    <span className="insight-icon" aria-hidden="true">
+      <i className={`fa-solid ${icon}`} />
+    </span>
   );
 }
 
 function InsightsPanel({ data, xCol, yCol }) {
-  const [insights, setInsights] = useState([]);
+  const insights = useMemo(() => {
+    if (!Array.isArray(data) || data.length === 0 || !xCol || !yCol) {
+      return [];
+    }
 
-  useEffect(() => {
-    if (!data || !xCol || !yCol) return;
+    const result = [];
 
-    const newInsights = [];
-    const numericPairs = data.filter(
-      (d) => typeof d[xCol] === "number" && typeof d[yCol] === "number"
+    const columns = Object.keys(data[0] || {});
+
+    if (!columns.includes(xCol) || !columns.includes(yCol)) {
+      return [];
+    }
+
+    const numericPairs = data
+      .map((row) => ({
+        row,
+        x: toNumber(row?.[xCol]),
+        y: toNumber(row?.[yCol]),
+      }))
+      .filter(
+        (item) =>
+          Number.isFinite(item.x) &&
+          Number.isFinite(item.y)
+      );
+
+    const xValues = numericPairs.map((item) => item.x);
+    const yValues = numericPairs.map((item) => item.y);
+
+    const xIsNumeric = numericPairs.length > 0;
+    const xIsCategory = data.some(
+      (row) =>
+        !isMissing(row?.[xCol]) &&
+        !isNumeric(row?.[xCol])
     );
-    const xVals = numericPairs.map((d) => d[xCol]);
-    const yVals = numericPairs.map((d) => d[yCol]);
 
-    // 🔹 Correlation
-    if (xVals.length && yVals.length) {
-      const corr = correlation(xVals, yVals);
-      if (corr > 0.7)
-        newInsights.push(
-          <span style={{ color: "green" }}>
-            <i className="fa-solid fa-link"></i> Strong Positive Correlation ({corr}) between <b>{xCol}</b> and <b>{yCol}</b>.
-          </span>
-        );
-      else if (corr < -0.7)
-        newInsights.push(
-          <span style={{ color: "red" }}>
-            <i className="fa-solid fa-link"></i> Strong Negative Correlation ({corr}) between <b>{xCol}</b> and <b>{yCol}</b>.
-          </span>
-        );
-      else
-        newInsights.push(
-          <span style={{ color: "#6b7280" }}>
-            <i className="fa-solid fa-link"></i> Weak or No significant correlation ({corr}) between <b>{xCol}</b> and <b>{yCol}</b>.
-          </span>
-        );
-    }
+    const yIsNumeric = data.some(
+      (row) =>
+        !isMissing(row?.[yCol]) &&
+        isNumeric(row?.[yCol])
+    );
 
-    // 🔹 Category Dominance
-    const isXCategory = typeof data[0]?.[xCol] === "string";
-    if (isXCategory) {
-      const counts = d3.rollup(data, (v) => v.length, (d) => d[xCol]);
-      const topCategory = Array.from(counts.entries()).sort((a, b) => b[1] - a[1])[0];
-      if (topCategory) {
-        newInsights.push(
-          <span style={{ color: "#f59e0b" }}>
-            <i className="fa-solid fa-crown"></i> Category <b>{topCategory[0]}</b> appears most frequently ({topCategory[1]} times).
-          </span>
-        );
+    /*
+     * ---------------------------------------------------------
+     * DATASET OVERVIEW
+     * ---------------------------------------------------------
+     */
+
+    const missingX = data.filter((row) =>
+      isMissing(row?.[xCol])
+    ).length;
+
+    const missingY = data.filter((row) =>
+      isMissing(row?.[yCol])
+    ).length;
+
+    result.push({
+      type: "info",
+      icon: "fa-database",
+      title: "Analysis sample",
+      text: `${numericPairs.length.toLocaleString()} paired observation${
+        numericPairs.length === 1 ? "" : "s"
+      } available for ${xCol} and ${yCol}.`,
+    });
+
+    /*
+     * ---------------------------------------------------------
+     * CORRELATION
+     * ---------------------------------------------------------
+     */
+
+    if (xIsNumeric && yIsNumeric && numericPairs.length >= 2) {
+      const corr = correlation(xValues, yValues);
+      const relationship = getRelationshipLabel(corr);
+
+      let direction = "positive";
+
+      if (corr < 0) {
+        direction = "negative";
       }
-    }
 
-    // 🔹 Max/Min
-    if (numericPairs.length > 0) {
-      const maxRow = d3.greatest(numericPairs, (d) => d[yCol]);
-      const minRow = d3.least(numericPairs, (d) => d[yCol]);
-      newInsights.push(
-        <span style={{ color: "blue" }}>
-          <i className="fa-solid fa-arrow-up"></i> Maximum <b>{yCol}</b> is {maxRow[yCol]} (at <b>{xCol}</b>: {maxRow[xCol]}).
-        </span>
-      );
-      newInsights.push(
-        <span style={{ color: "purple" }}>
-          <i className="fa-solid fa-arrow-down"></i> Minimum <b>{yCol}</b> is {minRow[yCol]} (at <b>{xCol}</b>: {minRow[xCol]}).
-        </span>
-      );
-    }
-
-    // 🔹 Outliers
-    if (yVals.length > 0) {
-      const mean = d3.mean(yVals);
-      const std = d3.deviation(yVals);
-      const outliers = numericPairs.filter(
-        (d) => Math.abs(d[yCol] - mean) > 2 * std
-      );
-      if (outliers.length > 0) {
-        newInsights.push(
-          <span style={{ color: "#dc2626" }}>
-            <i className="fa-solid fa-triangle-exclamation"></i> {outliers.length} outlier(s) detected in <b>{yCol}</b>, far from the mean ({mean.toFixed(2)}).
-          </span>
-        );
-      }
-    }
-
-    // 🔹 Spread (Variance & StdDev)
-    if (yVals.length > 0) {
-      const std = d3.deviation(yVals).toFixed(2);
-      const variance = d3.variance(yVals).toFixed(2);
-      newInsights.push(
-        <span style={{ color: "#2563eb" }}>
-          <i className="fa-solid fa-chart-area"></i> <b>{yCol}</b> has a standard deviation of {std} and variance of {variance}.
-        </span>
-      );
-    }
-
-    // 🔹 Skewness
-    if (yVals.length > 0) {
-      const skew = skewness(yVals).toFixed(2);
-      if (skew > 1) {
-        newInsights.push(
-          <span style={{ color: "#eab308" }}>
-            <i className="fa-solid fa-arrow-trend-up"></i> <b>{yCol}</b> distribution is positively skewed ({skew}).
-          </span>
-        );
-      } else if (skew < -1) {
-        newInsights.push(
-          <span style={{ color: "#a855f7" }}>
-            <i className="fa-solid fa-arrow-trend-down"></i> <b>{yCol}</b> distribution is negatively skewed ({skew}).
-          </span>
-        );
+      if (Math.abs(corr) < 0.3) {
+        result.push({
+          type: "neutral",
+          icon: "fa-link",
+          title: "Weak relationship",
+          text: `The linear relationship between ${xCol} and ${yCol} is very weak (r = ${formatNumber(
+            corr
+          )}).`,
+          metric: `r ${formatNumber(corr)}`,
+        });
       } else {
-        newInsights.push(
-          <span style={{ color: "#6b7280" }}>
-            <i className="fa-solid fa-arrows-left-right"></i> <b>{yCol}</b> distribution is approximately normal ({skew}).
-          </span>
-        );
+        result.push({
+          type: corr >= 0 ? "positive" : "negative",
+          icon: "fa-link",
+          title: `${relationship} ${direction} correlation`,
+          text: `${xCol} and ${yCol} have a ${relationship} ${direction} linear relationship (r = ${formatNumber(
+            corr
+          )}).`,
+          metric: `r ${formatNumber(corr)}`,
+        });
       }
     }
 
-    // 🔹 Missing Data Insights
-    const missingSummary = Object.keys(data[0] || {}).map((col) => {
-      const missingCount = data.filter((d) => d[col] == null || d[col] === "").length;
-      return { col, missingCount };
-    }).filter((d) => d.missingCount > 0);
+    /*
+     * ---------------------------------------------------------
+     * CATEGORY DOMINANCE
+     * ---------------------------------------------------------
+     */
 
-    if (missingSummary.length > 0) {
-      const topMissing = missingSummary.sort((a, b) => b.missingCount - a.missingCount)[0];
-      newInsights.push(
-        <span style={{ color: "#ef4444" }}>
-          <i className="fa-solid fa-ban"></i> Column <b>{topMissing.col}</b> has {topMissing.missingCount} missing values.
-        </span>
+    if (xIsCategory) {
+      const categoryCounts = d3.rollups(
+        data.filter((row) => !isMissing(row?.[xCol])),
+        (values) => values.length,
+        (row) => String(row[xCol])
       );
+
+      categoryCounts.sort((a, b) => b[1] - a[1]);
+
+      const topCategory = categoryCounts[0];
+
+      if (topCategory) {
+        const share =
+          data.length > 0
+            ? (topCategory[1] / data.length) * 100
+            : 0;
+
+        result.push({
+          type: "warning",
+          icon: "fa-ranking-star",
+          title: "Category concentration",
+          text: `${topCategory[0]} is the most frequent ${xCol} category with ${topCategory[1].toLocaleString()} observations (${formatNumber(
+            share,
+            1
+          )}% of the dataset).`,
+          metric: `${formatNumber(share, 1)}%`,
+        });
+      }
+
+      if (categoryCounts.length > 1) {
+        const categoryValues = categoryCounts.map(
+          ([category]) => category
+        );
+
+        result.push({
+          type: "info",
+          icon: "fa-layer-group",
+          title: "Category coverage",
+          text: `${xCol} contains ${categoryValues.length.toLocaleString()} distinct categories.`,
+          metric: categoryValues.length.toLocaleString(),
+        });
+      }
     }
 
-    // 🔹 Category Impact on Y
-    if (isXCategory && yVals.length > 0) {
-      const grouped = d3.rollups(
+    /*
+     * ---------------------------------------------------------
+     * MAXIMUM / MINIMUM
+     * ---------------------------------------------------------
+     */
+
+    if (yIsNumeric && numericPairs.length > 0) {
+      const maxRow = d3.greatest(
         numericPairs,
-        (v) => d3.mean(v, (d) => d[yCol]),
-        (d) => d[xCol]
+        (item) => item.y
       );
-      const sorted = grouped.sort((a, b) => b[1] - a[1]);
-      if (sorted.length > 1) {
-        newInsights.push(
-          <span style={{ color: "#10b981" }}>
-            <i className="fa-solid fa-chart-column"></i> Category <b>{sorted[0][0]}</b> has the highest average {yCol} ({sorted[0][1].toFixed(
-              2
-            )}), while <b>{sorted[sorted.length - 1][0]}</b> has the lowest ({sorted[sorted.length - 1][1].toFixed(2)}).
-          </span>
-        );
+
+      const minRow = d3.least(
+        numericPairs,
+        (item) => item.y
+      );
+
+      if (maxRow) {
+        result.push({
+          type: "positive",
+          icon: "fa-arrow-up",
+          title: `Highest ${yCol}`,
+          text: `${yCol} reaches ${formatNumber(
+            maxRow.y
+          )} at ${xCol} = ${String(maxRow.row[xCol])}.`,
+          metric: formatNumber(maxRow.y),
+        });
+      }
+
+      if (minRow) {
+        result.push({
+          type: "neutral",
+          icon: "fa-arrow-down",
+          title: `Lowest ${yCol}`,
+          text: `${yCol} reaches ${formatNumber(
+            minRow.y
+          )} at ${xCol} = ${String(minRow.row[xCol])}.`,
+          metric: formatNumber(minRow.y),
+        });
       }
     }
 
-    // 🔹 Trend Analysis
-    const sampleVal = data[0]?.[xCol];
-    if (
-      sampleVal &&
-      (sampleVal instanceof Date || !isNaN(Date.parse(sampleVal)))
-    ) {
-      const parsed = data
-        .map((d) => ({
-          x: new Date(d[xCol]),
-          y: +d[yCol],
-        }))
-        .filter((d) => !isNaN(d.x) && !isNaN(d.y))
-        .sort((a, b) => a.x - b.x);
+    /*
+     * ---------------------------------------------------------
+     * DISTRIBUTION
+     * ---------------------------------------------------------
+     */
 
-      if (parsed.length > 1) {
-        const xNums = parsed.map((d, i) => i);
-        const yNums = parsed.map((d) => d.y);
-        const meanX = d3.mean(xNums);
-        const meanY = d3.mean(yNums);
-        const slope =
-          d3.sum(xNums.map((x, i) => (x - meanX) * (yNums[i] - meanY))) /
-          d3.sum(xNums.map((x) => Math.pow(x - meanX, 2)));
+    if (yValues.length >= 2) {
+      const mean = d3.mean(yValues);
+      const median = d3.median(yValues);
+      const std = d3.deviation(yValues) || 0;
+      const variance = d3.variance(yValues) || 0;
 
-        if (slope > 0.1) {
-          newInsights.push(
-            <span style={{ color: "green" }}>
-              <i className="fa-solid fa-chart-line"></i> <b>{yCol}</b> shows an upward trend over time (<b>{xCol}</b>).
-            </span>
+      const min = d3.min(yValues);
+      const max = d3.max(yValues);
+
+      const q1 = d3.quantile(yValues.slice().sort(d3.ascending), 0.25);
+      const q3 = d3.quantile(yValues.slice().sort(d3.ascending), 0.75);
+
+      const range = max - min;
+      const coefficientOfVariation =
+        mean !== 0 ? Math.abs(std / mean) * 100 : 0;
+
+      result.push({
+        type: "info",
+        icon: "fa-chart-area",
+        title: `${yCol} variability`,
+        text: `The standard deviation is ${formatNumber(
+          std
+        )}, with a range of ${formatNumber(range)}.`,
+        metric: `σ ${formatNumber(std)}`,
+      });
+
+      result.push({
+        type: "info",
+        icon: "fa-scale-balanced",
+        title: "Central tendency",
+        text: `The mean is ${formatNumber(
+          mean
+        )}, while the median is ${formatNumber(median)}.`,
+        metric: `μ ${formatNumber(mean)}`,
+      });
+
+      if (q1 !== undefined && q3 !== undefined) {
+        result.push({
+          type: "info",
+          icon: "fa-arrows-left-right",
+          title: "Interquartile range",
+          text: `The middle 50% of ${yCol} falls between ${formatNumber(
+            q1
+          )} and ${formatNumber(q3)}.`,
+          metric: `IQR ${formatNumber(q3 - q1)}`,
+        });
+      }
+
+      if (Number.isFinite(coefficientOfVariation)) {
+        result.push({
+          type: "neutral",
+          icon: "fa-percent",
+          title: "Relative variability",
+          text: `${yCol} has a coefficient of variation of ${formatNumber(
+            coefficientOfVariation,
+            1
+          )}%.`,
+          metric: `${formatNumber(
+            coefficientOfVariation,
+            1
+          )}%`,
+        });
+      }
+
+      /*
+       * -------------------------------------------------------
+       * SKEWNESS
+       * -------------------------------------------------------
+       */
+
+      const skew = skewness(yValues);
+
+      if (skew > 1) {
+        result.push({
+          type: "warning",
+          icon: "fa-arrow-trend-up",
+          title: "Positive skew",
+          text: `${yCol} has a positively skewed distribution (skewness ${formatNumber(
+            skew
+          )}), indicating a longer upper tail.`,
+          metric: formatNumber(skew),
+        });
+      } else if (skew < -1) {
+        result.push({
+          type: "warning",
+          icon: "fa-arrow-trend-down",
+          title: "Negative skew",
+          text: `${yCol} has a negatively skewed distribution (skewness ${formatNumber(
+            skew
+          )}), indicating a longer lower tail.`,
+          metric: formatNumber(skew),
+        });
+      } else {
+        result.push({
+          type: "neutral",
+          icon: "fa-arrows-left-right",
+          title: "Balanced distribution",
+          text: `${yCol} has relatively limited skewness (skewness ${formatNumber(
+            skew
+          )}).`,
+          metric: formatNumber(skew),
+        });
+      }
+
+      /*
+       * -------------------------------------------------------
+       * IQR OUTLIERS
+       * -------------------------------------------------------
+       */
+
+      if (q1 !== undefined && q3 !== undefined) {
+        const iqr = q3 - q1;
+
+        if (iqr > 0) {
+          const lowerFence = q1 - 1.5 * iqr;
+          const upperFence = q3 + 1.5 * iqr;
+
+          const outliers = numericPairs.filter(
+            (item) =>
+              item.y < lowerFence || item.y > upperFence
           );
-        } else if (slope < -0.1) {
-          newInsights.push(
-            <span style={{ color: "red" }}>
-              <i className="fa-solid fa-chart-line"></i> <b>{yCol}</b> shows a downward trend over time (<b>{xCol}</b>).
-            </span>
-          );
-        } else {
-          newInsights.push(
-            <span style={{ color: "#6b7280" }}>
-              <i className="fa-solid fa-chart-line"></i> <b>{yCol}</b> remains stable over time (<b>{xCol}</b>).
-            </span>
-          );
+
+          if (outliers.length > 0) {
+            const percentage =
+              (outliers.length / yValues.length) * 100;
+
+            result.push({
+              type: "warning",
+              icon: "fa-triangle-exclamation",
+              title: "Potential outliers",
+              text: `${outliers.length.toLocaleString()} value${
+                outliers.length === 1 ? "" : "s"
+              } in ${yCol} fall outside the 1.5×IQR fences (${formatNumber(
+                percentage,
+                1
+              )}% of observations).`,
+              metric: outliers.length.toLocaleString(),
+            });
+          } else {
+            result.push({
+              type: "positive",
+              icon: "fa-circle-check",
+              title: "No IQR outliers",
+              text: `No ${yCol} values fall outside the standard 1.5×IQR outlier fences.`,
+              metric: "0",
+            });
+          }
         }
       }
     }
 
-    setInsights(newInsights);
+    /*
+     * ---------------------------------------------------------
+     * CATEGORY IMPACT ON Y
+     * ---------------------------------------------------------
+     */
+
+    if (
+      xIsCategory &&
+      yIsNumeric &&
+      numericPairs.length > 0
+    ) {
+      const grouped = d3.rollups(
+        numericPairs,
+        (values) => ({
+          mean: d3.mean(values, (item) => item.y),
+          count: values.length,
+        }),
+        (item) => String(item.row[xCol])
+      );
+
+      grouped.sort((a, b) => b[1].mean - a[1].mean);
+
+      if (grouped.length > 1) {
+        const highest = grouped[0];
+        const lowest = grouped[grouped.length - 1];
+
+        result.push({
+          type: "positive",
+          icon: "fa-chart-column",
+          title: "Category comparison",
+          text: `${highest[0]} has the highest average ${yCol} (${formatNumber(
+            highest[1].mean
+          )}), while ${lowest[0]} has the lowest (${formatNumber(
+            lowest[1].mean
+          )}).`,
+          metric: `${grouped.length} groups`,
+        });
+      }
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * TIME TREND
+     * ---------------------------------------------------------
+     */
+
+    const datePairs = data
+      .map((row) => {
+        const rawDate = row?.[xCol];
+
+        if (!isDateLike(rawDate)) {
+          return null;
+        }
+
+        const date = new Date(rawDate);
+        const value = toNumber(row?.[yCol]);
+
+        if (
+          Number.isNaN(date.getTime()) ||
+          !Number.isFinite(value)
+        ) {
+          return null;
+        }
+
+        return {
+          date,
+          value,
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.date - b.date);
+
+    if (datePairs.length >= 3) {
+      const trend = getTrend(
+        datePairs.map((item) => item.value)
+      );
+
+      if (trend) {
+        if (trend.slope > 0) {
+          result.push({
+            type: "positive",
+            icon: "fa-chart-line",
+            title: "Upward time trend",
+            text: `${yCol} generally increases over ${xCol}, based on the fitted linear trend.`,
+            metric: `R² ${formatNumber(trend.rSquared)}`,
+          });
+        } else if (trend.slope < 0) {
+          result.push({
+            type: "negative",
+            icon: "fa-chart-line",
+            title: "Downward time trend",
+            text: `${yCol} generally decreases over ${xCol}, based on the fitted linear trend.`,
+            metric: `R² ${formatNumber(trend.rSquared)}`,
+          });
+        } else {
+          result.push({
+            type: "neutral",
+            icon: "fa-chart-line",
+            title: "Stable time trend",
+            text: `No meaningful linear direction was detected for ${yCol} over ${xCol}.`,
+            metric: `R² ${formatNumber(trend.rSquared)}`,
+          });
+        }
+      }
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * MISSING DATA
+     * ---------------------------------------------------------
+     */
+
+    const missingByColumn = columns
+      .map((column) => {
+        const missingCount = data.filter((row) =>
+          isMissing(row?.[column])
+        ).length;
+
+        return {
+          column,
+          missingCount,
+          percentage:
+            data.length > 0
+              ? (missingCount / data.length) * 100
+              : 0,
+        };
+      })
+      .filter((item) => item.missingCount > 0)
+      .sort((a, b) => b.missingCount - a.missingCount);
+
+    if (missingByColumn.length > 0) {
+      const highestMissing = missingByColumn[0];
+
+      result.push({
+        type: "warning",
+        icon: "fa-ban",
+        title: "Missing data detected",
+        text: `${highestMissing.column} contains ${highestMissing.missingCount.toLocaleString()} missing value${
+          highestMissing.missingCount === 1 ? "" : "s"
+        } (${formatNumber(
+          highestMissing.percentage,
+          1
+        )}%).`,
+        metric: `${formatNumber(
+          highestMissing.percentage,
+          1
+        )}%`,
+      });
+    } else {
+      result.push({
+        type: "positive",
+        icon: "fa-circle-check",
+        title: "Complete dataset",
+        text: "No missing values were detected across the dataset.",
+        metric: "100%",
+      });
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * X/Y MISSING VALUES
+     * ---------------------------------------------------------
+     */
+
+    if (missingX > 0 || missingY > 0) {
+      result.push({
+        type: "warning",
+        icon: "fa-filter-circle-xmark",
+        title: "Analysis exclusions",
+        text: `${missingX + missingY} missing X/Y values may have been excluded from pair-based analysis.`,
+        metric: `${numericPairs.length}/${data.length}`,
+      });
+    }
+
+    return result;
   }, [data, xCol, yCol]);
 
   return (
-    <div className="insights-panel">
-      <h2>Insights Report</h2>
+    <section className="insights-panel" aria-label="Data insights">
+      <div className="insights-header">
+        <div>
+          <span className="insights-eyebrow">AUTOMATED ANALYSIS</span>
+
+          <h2>Insights Report</h2>
+
+          <p>
+            Statistical observations generated from{" "}
+            <strong>{xCol || "X"}</strong> and{" "}
+            <strong>{yCol || "Y"}</strong>.
+          </p>
+        </div>
+
+        <div className="insights-header-icon" aria-hidden="true">
+          <i className="fa-solid fa-wand-magic-sparkles" />
+        </div>
+      </div>
+
       {insights.length > 0 ? (
-        <ul>
-          {insights.map((insight, i) => (
-            <li key={i}>{insight}</li>
+        <div className="insights-list">
+          {insights.map((insight, index) => (
+            <article
+              className={`insight-card insight-${insight.type}`}
+              key={`${insight.title}-${index}`}
+            >
+              <InsightIcon icon={insight.icon} />
+
+              <div className="insight-content">
+                <div className="insight-title-row">
+                  <h3>{insight.title}</h3>
+
+                  {insight.metric && (
+                    <span className="insight-metric">
+                      {insight.metric}
+                    </span>
+                  )}
+                </div>
+
+                <p>{insight.text}</p>
+              </div>
+            </article>
           ))}
-        </ul>
+        </div>
       ) : (
-        <p>No insights available! Please select valid columns.</p>
+        <div className="insights-empty">
+          <div className="insights-empty-icon" aria-hidden="true">
+            <i className="fa-solid fa-chart-simple" />
+          </div>
+
+          <h3>No insights available</h3>
+
+          <p>
+            Select valid X and Y columns with enough usable data to
+            generate statistical insights.
+          </p>
+        </div>
       )}
-    </div>
+
+      {insights.length > 0 && (
+        <footer className="insights-footer">
+          <i className="fa-solid fa-circle-info" aria-hidden="true" />
+
+          <span>
+            Insights are calculated automatically from the currently
+            selected dataset and columns.
+          </span>
+        </footer>
+      )}
+    </section>
   );
 }
 
