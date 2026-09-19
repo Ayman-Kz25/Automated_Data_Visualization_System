@@ -140,7 +140,6 @@ function isDateLike(value) {
     return false;
   }
 
-  // Avoid treating plain numbers as dates.
   if (/^-?\d+(?:\.\d+)?$/.test(value.trim())) {
     return false;
   }
@@ -153,21 +152,10 @@ function isDateLike(value) {
 function getRelationshipLabel(corr) {
   const absolute = Math.abs(corr);
 
-  if (absolute >= 0.9) {
-    return "very strong";
-  }
-
-  if (absolute >= 0.7) {
-    return "strong";
-  }
-
-  if (absolute >= 0.5) {
-    return "moderate";
-  }
-
-  if (absolute >= 0.3) {
-    return "weak";
-  }
+  if (absolute >= 0.9) return "very strong";
+  if (absolute >= 0.7) return "strong";
+  if (absolute >= 0.5) return "moderate";
+  if (absolute >= 0.3) return "weak";
 
   return "very weak";
 }
@@ -187,7 +175,6 @@ function InsightsPanel({ data, xCol, yCol }) {
     }
 
     const result = [];
-
     const columns = Object.keys(data[0] || {});
 
     if (!columns.includes(xCol) || !columns.includes(yCol)) {
@@ -210,6 +197,7 @@ function InsightsPanel({ data, xCol, yCol }) {
     const yValues = numericPairs.map((item) => item.y);
 
     const xIsNumeric = numericPairs.length > 0;
+
     const xIsCategory = data.some(
       (row) =>
         !isMissing(row?.[xCol]) &&
@@ -222,7 +210,6 @@ function InsightsPanel({ data, xCol, yCol }) {
         isNumeric(row?.[yCol])
     );
 
-    /* DATASET OVERVIEW */
     const missingX = data.filter((row) =>
       isMissing(row?.[xCol])
     ).length;
@@ -240,7 +227,6 @@ function InsightsPanel({ data, xCol, yCol }) {
       } available for ${xCol} and ${yCol}.`,
     });
 
-    /* CORRELATION */
     if (xIsNumeric && yIsNumeric && numericPairs.length >= 2) {
       const corr = correlation(xValues, yValues);
       const relationship = getRelationshipLabel(corr);
@@ -274,7 +260,6 @@ function InsightsPanel({ data, xCol, yCol }) {
       }
     }
 
-    /* CATEGORY DOMINANCE */
     if (xIsCategory) {
       const categoryCounts = d3.rollups(
         data.filter((row) => !isMissing(row?.[xCol])),
@@ -305,21 +290,16 @@ function InsightsPanel({ data, xCol, yCol }) {
       }
 
       if (categoryCounts.length > 1) {
-        const categoryValues = categoryCounts.map(
-          ([category]) => category
-        );
-
         result.push({
           type: "info",
           icon: "fa-layer-group",
           title: "Category coverage",
-          text: `${xCol} contains ${categoryValues.length.toLocaleString()} distinct categories.`,
-          metric: categoryValues.length.toLocaleString(),
+          text: `${xCol} contains ${categoryCounts.length.toLocaleString()} distinct categories.`,
+          metric: categoryCounts.length.toLocaleString(),
         });
       }
     }
 
-    /* MAXIMUM / MINIMUM */
     if (yIsNumeric && numericPairs.length > 0) {
       const maxRow = d3.greatest(
         numericPairs,
@@ -356,20 +336,21 @@ function InsightsPanel({ data, xCol, yCol }) {
       }
     }
 
-    /* DISTRIBUTION */
     if (yValues.length >= 2) {
       const mean = d3.mean(yValues);
       const median = d3.median(yValues);
       const std = d3.deviation(yValues) || 0;
-      // const variance = d3.variance(yValues) || 0;
 
       const min = d3.min(yValues);
       const max = d3.max(yValues);
 
-      const q1 = d3.quantile(yValues.slice().sort(d3.ascending), 0.25);
-      const q3 = d3.quantile(yValues.slice().sort(d3.ascending), 0.75);
+      const sortedValues = yValues.slice().sort(d3.ascending);
+
+      const q1 = d3.quantile(sortedValues, 0.25);
+      const q3 = d3.quantile(sortedValues, 0.75);
 
       const range = max - min;
+
       const coefficientOfVariation =
         mean !== 0 ? Math.abs(std / mean) * 100 : 0;
 
@@ -421,7 +402,6 @@ function InsightsPanel({ data, xCol, yCol }) {
         });
       }
 
-      /* SKEWNESS */
       const skew = skewness(yValues);
 
       if (skew > 1) {
@@ -456,7 +436,6 @@ function InsightsPanel({ data, xCol, yCol }) {
         });
       }
 
-      /* IQR OUTLIERS */
       if (q1 !== undefined && q3 !== undefined) {
         const iqr = q3 - q1;
 
@@ -498,7 +477,6 @@ function InsightsPanel({ data, xCol, yCol }) {
       }
     }
 
-    /* CATEGORY IMPACT ON Y */
     if (
       xIsCategory &&
       yIsNumeric &&
@@ -533,7 +511,6 @@ function InsightsPanel({ data, xCol, yCol }) {
       }
     }
 
-    /* TIME TREND */
     const datePairs = data
       .map((row) => {
         const rawDate = row?.[xCol];
@@ -594,7 +571,6 @@ function InsightsPanel({ data, xCol, yCol }) {
       }
     }
 
-    /* MISSING DATA */
     const missingByColumn = columns
       .map((column) => {
         const missingCount = data.filter((row) =>
@@ -641,7 +617,6 @@ function InsightsPanel({ data, xCol, yCol }) {
       });
     }
 
-    /* X/Y MISSING VALUES */
     if (missingX > 0 || missingY > 0) {
       result.push({
         type: "warning",
@@ -658,15 +633,18 @@ function InsightsPanel({ data, xCol, yCol }) {
   return (
     <section className="insights-panel" aria-label="Data insights">
       <div className="insights-header">
-        <div>
-          <span className="insights-eyebrow">AUTOMATED ANALYSIS</span>
+        <div className="insights-header-content">
+          <span className="insights-eyebrow">
+            AUTOMATED ANALYSIS
+          </span>
 
           <h2>Insights Report</h2>
 
           <p>
             Statistical observations generated from{" "}
-            <strong>{xCol || "X"}</strong> and{" "}
-            <strong>{yCol || "Y"}</strong>.
+            <strong title={xCol || "X"}>{xCol || "X"}</strong>
+            {" and "}
+            <strong title={yCol || "Y"}>{yCol || "Y"}</strong>.
           </p>
         </div>
 
@@ -686,10 +664,15 @@ function InsightsPanel({ data, xCol, yCol }) {
 
               <div className="insight-content">
                 <div className="insight-title-row">
-                  <h3>{insight.title}</h3>
+                  <h3 title={insight.title}>
+                    {insight.title}
+                  </h3>
 
                   {insight.metric && (
-                    <span className="insight-metric">
+                    <span
+                      className="insight-metric"
+                      title={insight.metric}
+                    >
                       {insight.metric}
                     </span>
                   )}
@@ -717,7 +700,10 @@ function InsightsPanel({ data, xCol, yCol }) {
 
       {insights.length > 0 && (
         <footer className="insights-footer">
-          <i className="fa-solid fa-circle-info" aria-hidden="true" />
+          <i
+            className="fa-solid fa-circle-info"
+            aria-hidden="true"
+          />
 
           <span>
             Insights are calculated automatically from the currently

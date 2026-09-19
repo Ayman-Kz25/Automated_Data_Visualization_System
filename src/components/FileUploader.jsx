@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 
-const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
+const MAX_FILE_SIZE = 2 * 1024 * 1024;
 
 const SUPPORTED_EXTENSIONS = [
   "csv",
@@ -96,12 +96,6 @@ function FileUploader({ setDatasets }) {
       return false;
     }
 
-    // Numeric values:
-    // 10
-    // -10
-    // 10.5
-    // 1,250
-    // $4,500
     const numericValue = trimmed
       .replace(/[$,%]/g, "")
       .replace(/,/g, "");
@@ -232,14 +226,14 @@ function FileUploader({ setDatasets }) {
     }
 
     setSuccess(
-      `Imported ${typedData.length.toLocaleString()} rows and ${columns.length} columns.`
+      `Imported ${typedData.length.toLocaleString()} rows · ${columns.length} columns`
     );
 
     return true;
   };
 
   const processCsv = (file) => {
-    setInfo("Parsing CSV file...");
+    setInfo("Parsing CSV...");
 
     Papa.parse(file, {
       header: false,
@@ -255,7 +249,9 @@ function FileUploader({ setDatasets }) {
 
           if (result.errors?.length > 0) {
             const criticalErrors = result.errors.filter(
-              (error) => error.type === "Quotes" || error.type === "FieldMismatch"
+              (error) =>
+                error.type === "Quotes" ||
+                error.type === "FieldMismatch"
             );
 
             if (criticalErrors.length > 0) {
@@ -263,16 +259,14 @@ function FileUploader({ setDatasets }) {
             }
           }
 
-          const matrix = result.data;
-
           const imported = cleanAndSetData(
-            rowsFromMatrix(matrix),
+            rowsFromMatrix(result.data),
             file.name
           );
 
           if (imported) {
             setInfo(
-              `CSV parsed successfully. ${matrix.length.toLocaleString()} rows detected.`
+              `CSV imported · ${result.data.length.toLocaleString()} rows detected`
             );
           }
         } catch (error) {
@@ -378,7 +372,6 @@ function FileUploader({ setDatasets }) {
       }
 
       const rows = rowsFromMatrix(matrix);
-
       const datasetName = `${fileName} - ${sheetName}`;
 
       const imported = cleanAndSetData(rows, datasetName);
@@ -386,8 +379,8 @@ function FileUploader({ setDatasets }) {
       if (imported) {
         setInfo(
           hasMultipleSheets
-            ? `Imported "${sheetName}". Choose another sheet below to import it too.`
-            : `Excel sheet "${sheetName}" imported successfully.`
+            ? `Imported "${sheetName}"`
+            : `Excel sheet "${sheetName}" imported`
         );
       }
     } catch (error) {
@@ -397,7 +390,7 @@ function FileUploader({ setDatasets }) {
   };
 
   const processJson = (file) => {
-    setInfo("Parsing JSON file...");
+    setInfo("Parsing JSON...");
 
     const reader = new FileReader();
 
@@ -497,9 +490,7 @@ function FileUploader({ setDatasets }) {
 
     if (file.size > MAX_FILE_SIZE) {
       setError(
-        `File is too large. The maximum allowed size is ${formatFileSize(
-          MAX_FILE_SIZE
-        )}.`
+        `File is too large. Maximum size is ${formatFileSize(MAX_FILE_SIZE)}.`
       );
       return;
     }
@@ -531,7 +522,6 @@ function FileUploader({ setDatasets }) {
   const handleFileUpload = (event) => {
     const file = event.target.files?.[0];
 
-    // Reset input so the same file can be selected again.
     event.target.value = "";
 
     processFile(file);
@@ -590,25 +580,30 @@ function FileUploader({ setDatasets }) {
 
   return (
     <section className="uploader" aria-label="Dataset uploader">
-      <div className="uploader-header">
-        <div>
-          <span className="uploader-eyebrow">DATA IMPORT</span>
-          <h2>Upload Dataset</h2>
-          <p>
-            Import CSV, Excel, JSON, or text files for analysis and
-            visualization.
-          </p>
+      <div className="uploader-compact-header">
+        <div className="uploader-title-wrap">
+          <div className="uploader-title-icon" aria-hidden="true">
+            <i className="fa-solid fa-cloud-arrow-up"></i>
+          </div>
+
+          <div>
+            <h2>Import data</h2>
+            <p>Add a dataset to start exploring.</p>
+          </div>
         </div>
 
-        <div className="uploader-format-badge">
-          {SUPPORTED_EXTENSIONS.slice(0, 4).map((extension) => (
-            <span key={extension}>{extension.toUpperCase()}</span>
-          ))}
-        </div>
+        <button
+          type="button"
+          className="uploader-browse-button"
+          onClick={handleBrowseClick}
+          disabled={isProcessing}
+        >
+          {isProcessing ? "Working..." : "Browse"}
+        </button>
       </div>
 
       <div
-        className={`uploader-dropzone ${
+        className={`uploader-dropzone uploader-dropzone-compact ${
           isDragging ? "is-dragging" : ""
         } ${isProcessing ? "is-processing" : ""}`}
         onDragEnter={handleDragOver}
@@ -639,29 +634,54 @@ function FileUploader({ setDatasets }) {
           disabled={isProcessing}
         />
 
-        <div className="uploader-icon" aria-hidden="true">
-          {isProcessing ? "↻" : "↑"}
+        <div className="uploader-drop-icon" aria-hidden="true">
+          <i
+            className={`fa-solid ${
+              isProcessing
+                ? "fa-spinner fa-spin"
+                : isDragging
+                ? "fa-file-arrow-down"
+                : "fa-cloud-arrow-up"
+            }`}
+          ></i>
         </div>
 
-        <div className="uploader-dropzone-content">
+        <div className="uploader-drop-content">
           <strong>
             {isProcessing
-              ? "Processing dataset..."
+              ? "Processing dataset"
               : isDragging
-              ? "Drop your file here"
-              : "Drag & drop your dataset here"}
+              ? "Drop file to import"
+              : "Drop a file here"}
           </strong>
 
           <span>
             {isProcessing
-              ? "Please wait while the data is being processed."
-              : "or click anywhere here to browse your files"}
+              ? "Please wait..."
+              : "or use the Browse button"}
           </span>
         </div>
+      </div>
 
-        <div className="uploader-size-limit">
-          Maximum file size: {formatFileSize(MAX_FILE_SIZE)}
-        </div>
+      <div className="uploader-meta">
+        <span>
+          <i className="fa-solid fa-file-lines"></i>
+          CSV
+        </span>
+
+        <span>
+          <i className="fa-solid fa-table"></i>
+          Excel
+        </span>
+
+        <span>
+          <i className="fa-solid fa-code"></i>
+          JSON
+        </span>
+
+        <span className="uploader-size">
+          Max {formatFileSize(MAX_FILE_SIZE)}
+        </span>
       </div>
 
       {status.message && (
@@ -682,19 +702,21 @@ function FileUploader({ setDatasets }) {
       )}
 
       {sheets.length > 1 && (
-        <div className="sheet-selector">
+        <div className="sheet-selector sheet-selector-compact">
           <div className="sheet-selector-heading">
-            <div>
-              <span className="uploader-eyebrow">WORKBOOK</span>
-              <strong>{workbookData?.fileName}</strong>
+            <div className="sheet-selector-title">
+              <i className="fa-solid fa-table-cells"></i>
+
+              <div>
+                <strong>Workbook sheets</strong>
+                <span>{workbookData?.fileName}</span>
+              </div>
             </div>
 
-            <span className="sheet-count">
-              {sheets.length} sheets
-            </span>
+            <span className="sheet-count">{sheets.length}</span>
           </div>
 
-          <label htmlFor="sheet-select">Select worksheet</label>
+          <label htmlFor="sheet-select">Worksheet</label>
 
           <select
             id="sheet-select"
@@ -709,9 +731,7 @@ function FileUploader({ setDatasets }) {
             ))}
           </select>
 
-          <p>
-            Selecting a worksheet imports it as a separate dataset.
-          </p>
+          <p>Each selected sheet is imported as a separate dataset.</p>
         </div>
       )}
     </section>
