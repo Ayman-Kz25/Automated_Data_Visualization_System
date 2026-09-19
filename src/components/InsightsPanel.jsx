@@ -222,12 +222,7 @@ function InsightsPanel({ data, xCol, yCol }) {
         isNumeric(row?.[yCol])
     );
 
-    /*
-     * ---------------------------------------------------------
-     * DATASET OVERVIEW
-     * ---------------------------------------------------------
-     */
-
+    /* DATASET OVERVIEW */
     const missingX = data.filter((row) =>
       isMissing(row?.[xCol])
     ).length;
@@ -245,12 +240,7 @@ function InsightsPanel({ data, xCol, yCol }) {
       } available for ${xCol} and ${yCol}.`,
     });
 
-    /*
-     * ---------------------------------------------------------
-     * CORRELATION
-     * ---------------------------------------------------------
-     */
-
+    /* CORRELATION */
     if (xIsNumeric && yIsNumeric && numericPairs.length >= 2) {
       const corr = correlation(xValues, yValues);
       const relationship = getRelationshipLabel(corr);
@@ -284,12 +274,7 @@ function InsightsPanel({ data, xCol, yCol }) {
       }
     }
 
-    /*
-     * ---------------------------------------------------------
-     * CATEGORY DOMINANCE
-     * ---------------------------------------------------------
-     */
-
+    /* CATEGORY DOMINANCE */
     if (xIsCategory) {
       const categoryCounts = d3.rollups(
         data.filter((row) => !isMissing(row?.[xCol])),
@@ -334,12 +319,7 @@ function InsightsPanel({ data, xCol, yCol }) {
       }
     }
 
-    /*
-     * ---------------------------------------------------------
-     * MAXIMUM / MINIMUM
-     * ---------------------------------------------------------
-     */
-
+    /* MAXIMUM / MINIMUM */
     if (yIsNumeric && numericPairs.length > 0) {
       const maxRow = d3.greatest(
         numericPairs,
@@ -376,17 +356,12 @@ function InsightsPanel({ data, xCol, yCol }) {
       }
     }
 
-    /*
-     * ---------------------------------------------------------
-     * DISTRIBUTION
-     * ---------------------------------------------------------
-     */
-
+    /* DISTRIBUTION */
     if (yValues.length >= 2) {
       const mean = d3.mean(yValues);
       const median = d3.median(yValues);
       const std = d3.deviation(yValues) || 0;
-      const variance = d3.variance(yValues) || 0;
+      // const variance = d3.variance(yValues) || 0;
 
       const min = d3.min(yValues);
       const max = d3.max(yValues);
@@ -446,12 +421,7 @@ function InsightsPanel({ data, xCol, yCol }) {
         });
       }
 
-      /*
-       * -------------------------------------------------------
-       * SKEWNESS
-       * -------------------------------------------------------
-       */
-
+      /* SKEWNESS */
       const skew = skewness(yValues);
 
       if (skew > 1) {
@@ -486,12 +456,7 @@ function InsightsPanel({ data, xCol, yCol }) {
         });
       }
 
-      /*
-       * -------------------------------------------------------
-       * IQR OUTLIERS
-       * -------------------------------------------------------
-       */
-
+      /* IQR OUTLIERS */
       if (q1 !== undefined && q3 !== undefined) {
         const iqr = q3 - q1;
 
@@ -533,12 +498,7 @@ function InsightsPanel({ data, xCol, yCol }) {
       }
     }
 
-    /*
-     * ---------------------------------------------------------
-     * CATEGORY IMPACT ON Y
-     * ---------------------------------------------------------
-     */
-
+    /* CATEGORY IMPACT ON Y */
     if (
       xIsCategory &&
       yIsNumeric &&
@@ -573,12 +533,7 @@ function InsightsPanel({ data, xCol, yCol }) {
       }
     }
 
-    /*
-     * ---------------------------------------------------------
-     * TIME TREND
-     * ---------------------------------------------------------
-     */
-
+    /* TIME TREND */
     const datePairs = data
       .map((row) => {
         const rawDate = row?.[xCol];
@@ -639,12 +594,7 @@ function InsightsPanel({ data, xCol, yCol }) {
       }
     }
 
-    /*
-     * ---------------------------------------------------------
-     * MISSING DATA
-     * ---------------------------------------------------------
-     */
-
+    /* MISSING DATA */
     const missingByColumn = columns
       .map((column) => {
         const missingCount = data.filter((row) =>
@@ -691,12 +641,7 @@ function InsightsPanel({ data, xCol, yCol }) {
       });
     }
 
-    /*
-     * ---------------------------------------------------------
-     * X/Y MISSING VALUES
-     * ---------------------------------------------------------
-     */
-
+    /* X/Y MISSING VALUES */
     if (missingX > 0 || missingY > 0) {
       result.push({
         type: "warning",

@@ -3269,3 +3269,86 @@ body.dark option {
     gap: 6px;
   }
 }
+
+/* Report Exporter */
+.report-exporter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.report-export-button {
+  display: inline-flex;
+  min-height: 42px;
+  padding: 0 16px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 1px solid var(--primary);
+  border-radius: 10px;
+  background: var(--primary);
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 5px 14px rgba(37, 99, 235, 0.16);
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    opacity 160ms ease;
+}
+
+.report-export-button:hover:not(:disabled) {
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.22);
+  transform: translateY(-1px);
+}
+
+.report-export-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.report-export-button:focus-visible {
+  outline: 3px solid var(--primary-soft);
+  outline-offset: 2px;
+}
+
+.report-export-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.report-export-button i {
+  font-size: 0.85rem;
+}
+
+.report-export-status {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.report-export-success {
+  color: #15803d;
+}
+
+.report-export-error {
+  color: #dc2626;
+}
+
+@media (max-width: 600px) {
+  .report-exporter {
+    width: 100%;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .report-export-button {
+    width: 100%;
+  }
+
+  .report-export-status {
+    text-align: center;
+  }
+}
